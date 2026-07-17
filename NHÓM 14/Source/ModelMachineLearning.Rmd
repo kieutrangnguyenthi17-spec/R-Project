@@ -1,0 +1,295 @@
+---
+title: "Heart Disease Prediction – So sánh mô hình Machine Learning"
+author: "Nhóm 14"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r libraries}
+library(caret)
+library(e1071)
+library(pROC)
+library(ggplot2)
+library(reshape2)
+library(glmnet)
+set.seed(123)
+```
+
+# 1. Đọc và xử lý dữ liệu
+
+```{r data}
+data <- read.csv(file.path("heart_disease_dataset_clean1.csv"), stringsAsFactors = FALSE)
+
+cat_vars <- c("sex","cp","fbs","restecg","exang","slope","ca","thal","target")
+data[cat_vars] <- lapply(data[cat_vars], factor)
+data$target <- factor(data$target, levels = c(0, 1), labels = c("No", "Yes"))
+
+cat("Kích thước:", nrow(data), "dòng x", ncol(data), "cột\n")
+cat("Phân phối target:\n"); print(table(data$target))
+```
+
+# 2. Chia tập train/test (70/30, stratified)
+
+```{r split}
+set.seed(123)
+idx   <- createDataPartition(data$target, p = 0.7, list = FALSE)
+train <- data[idx, ]
+test  <- data[-idx, ]
+```
+
+# 3. Thiết lập Cross-Validation
+
+```{r ctrl}
+ctrl_rep <- trainControl(
+  method = "repeatedcv", number = 10, repeats = 5,
+  classProbs = TRUE, summaryFunction = twoClassSummary,
+  savePredictions = "final"
+)
+
+ctrl_svm <- trainControl(
+  method          = "repeatedcv",
+  number          = 10,
+  repeats         = 3,
+  classProbs      = TRUE,
+  summaryFunction = twoClassSummary,
+  savePredictions = "final"        
+)
+```
+
+# 4. Logistic Regression (Elastic Net)
+
+```{r logistic}
+set.seed(123)
+log_model <- train(
+  target ~ ., data = train, method = "glmnet",
+  trControl = ctrl_rep, metric = "ROC",
+  preProcess = c("center", "scale"),
+  tuneGrid = expand.grid(
+    alpha  = c(0, 0.25, 0.5, 0.75, 1),        
+    lambda = 10^seq(-4, 0, length = 20)
+  )
+)
+
+log_pred <- predict(log_model, test)
+log_prob <- predict(log_model, test, type = "prob")[, "Yes"]
+log_cm   <- confusionMatrix(log_pred, test$target, positive = "Yes")
+
+cat("Logistic – CV AUC:", round(max(log_model$results$ROC), 4), "\n")
+print(log_cm)
+```
+
+## Biến quan trọng – Logistic
+
+```{r varImp_log}
+imp_log <- varImp(log_model, scale = FALSE)
+imp_log_df <- data.frame(
+  Variable   = rownames(imp_log$importance),
+  Importance = imp_log$importance[, 1]
+)
+imp_log_df <- imp_log_df[order(-imp_log_df$Importance), ]
+imp_log_df <- head(imp_log_df, 10)
+
+ggplot(imp_log_df, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "#8B0000") +
+  coord_flip() +
+  labs(
+    title = "Top 10 biến ảnh hưởng mạnh nhất của mô hình Logistic Regression",
+    x = "Biến",
+    y = "Importance"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 13, face = "bold"),
+    axis.text  = element_text(size = 11),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+# 5. KNN
+
+```{r knn}
+set.seed(123)
+knn_model <- train(
+  target ~ ., data = train, method = "knn",
+  trControl = ctrl_rep, metric = "ROC",
+  preProcess = c("center", "scale"),
+  tuneGrid = expand.grid(k = seq(5, 31, by = 2))  
+)
+
+best_k    <- knn_model$bestTune$k
+knn_pred  <- predict(knn_model, test)
+knn_prob  <- predict(knn_model, test, type = "prob")[, "Yes"]
+knn_cm    <- confusionMatrix(knn_pred, test$target, positive = "Yes")
+
+cat("KNN – k tối ưu:", best_k, "| CV AUC:", round(max(knn_model$results$ROC), 4), "\n")
+plot(knn_model)
+print(knn_cm)
+```
+
+# 6. SVM (RBF Kernel)
+
+```{r svm}
+set.seed(123)
+
+svm_grid <- expand.grid(
+  sigma = c(0.001, 0.01, 0.05, 0.1),
+  C     = c(0.01, 0.1, 0.5, 1, 2)
+)
+
+svm_model <- train(
+  target ~ ., data = train,
+  method     = "svmRadial",
+  trControl  = ctrl_svm,
+  metric     = "ROC",
+  preProcess = c("center", "scale"),
+  tuneGrid   = svm_grid
+)
+
+cat("=== SVM – Tham số tối ưu ===\n")
+print(svm_model$bestTune)
+cat("CV AUC (best):", round(max(svm_model$results$ROC), 4), "\n")
+
+# Dự đoán trên test
+svm_pred <- predict(svm_model, test)
+svm_prob <- predict(svm_model, test, type = "prob")[, "Yes"]
+svm_cm   <- confusionMatrix(svm_pred, test$target, positive = "Yes")
+print(svm_cm)
+
+# Visualize
+plot(svm_model, main = "SVM – CV AUC theo sigma và C")
+```
+
+# 7. Kiểm tra Overfitting (Train vs Test Accuracy)
+
+```{r overfitting}
+get_acc <- function(model, data, target) {
+  cm <- confusionMatrix(predict(model, data), target)
+  cm$overall["Accuracy"]
+}
+
+comparison <- data.frame(
+  Model     = c("Logistic (Elastic Net)", paste0("KNN (k=", best_k, ")"), "SVM"),
+  Train_Acc = c(get_acc(log_model, train, train$target),
+                get_acc(knn_model, train, train$target),
+                get_acc(svm_model, train, train$target)),
+  Test_Acc  = c(get_acc(log_model, test, test$target),
+                get_acc(knn_model, test, test$target),
+                get_acc(svm_model, test, test$target))
+)
+comparison$Gap <- comparison$Train_Acc - comparison$Test_Acc
+print(comparison)
+
+for (i in 1:nrow(comparison)) {
+  cat(sprintf("%-25s — Gap = %.4f %s\n",
+    comparison$Model[i], comparison$Gap[i],
+    ifelse(comparison$Gap[i] > 0.05, "Có dấu hiệu overfit", "Ổn định")))
+}
+```
+
+# 8. So sánh chỉ số hiệu suất
+
+```{r metrics}
+get_metrics <- function(cm, name) {
+  data.frame(Model       = name,
+             Accuracy    = cm$overall["Accuracy"],
+             Sensitivity = cm$byClass["Sensitivity"],
+             Precision   = cm$byClass["Precision"],
+             F1          = cm$byClass["F1"])
+}
+
+results <- rbind(
+  get_metrics(log_cm, "Logistic (Elastic Net)"),
+  get_metrics(knn_cm, paste0("KNN (k=", best_k, ")")),
+  get_metrics(svm_cm, "SVM")
+)
+print(results)
+
+melt(results, id.vars = "Model") |>
+  ggplot(aes(x = Model, y = value, fill = variable)) +
+  geom_col(position = "dodge") +
+  labs(title = "So sánh chỉ số các mô hình", y = "Giá trị", fill = "Chỉ số") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 15, hjust = 1))
+```
+
+# 9. ROC – AUC
+
+```{r roc}
+roc_log <- roc(test$target, log_prob, levels = c("No", "Yes"), quiet = TRUE)
+roc_knn <- roc(test$target, knn_prob, levels = c("No", "Yes"), quiet = TRUE)
+roc_svm <- roc(test$target, svm_prob, levels = c("No", "Yes"), quiet = TRUE)
+
+plot(roc_log, col = "blue",      main = "ROC Curve – So sánh 3 mô hình")
+plot(roc_knn, col = "darkgreen", add = TRUE)
+plot(roc_svm, col = "red",       add = TRUE)
+legend("bottomright",
+  legend = c(paste0("Logistic (AUC=", round(auc(roc_log), 3), ")"),
+             paste0("KNN      (AUC=", round(auc(roc_knn), 3), ")"),
+             paste0("SVM      (AUC=", round(auc(roc_svm), 3), ")")),
+  col = c("blue", "darkgreen", "red"), lwd = 2)
+```
+
+# 10. Confusion Matrix Heatmap
+
+```{r heatmap}
+plot_cm <- function(cm, title) {
+  as.data.frame(cm$table) |>
+    ggplot(aes(Prediction, Reference, fill = Freq)) +
+    geom_tile() +
+    geom_text(aes(label = Freq), color = "white", size = 6) +
+    scale_fill_gradient(low = "lightblue", high = "darkblue") +
+    labs(title = title) + theme_minimal()
+}
+
+plot_cm(log_cm, "Confusion Matrix – Logistic Regression (Elastic Net)")
+plot_cm(knn_cm, paste0("Confusion Matrix – KNN (k=", best_k, ")"))
+plot_cm(svm_cm, "Confusion Matrix – SVM")
+```
+
+# 11. Dự đoán cho bệnh nhân mới
+
+```{r predict_new}
+heart_raw <- read.csv(file.path("C:\\TaiLieuHocTap\\R\\HD\\Dataset\\heart_disease_dataset_clean.csv"), stringsAsFactors = FALSE)
+
+# Hàm chuẩn hóa Z-score
+z <- function(x, col) {
+  (x - mean(heart_raw[[col]])) / sd(heart_raw[[col]])
+}
+
+# Bệnh nhân mới (giá trị thực tế)
+new_patient <- data.frame(
+  age = z(35, "age"),                                              
+  sex = factor(1, levels = levels(train$sex)),
+  cp = factor(3, levels = levels(train$cp)),
+  trestbps = z(120, "trestbps"),
+  chol = z(198, "chol"),
+  fbs = factor(0, levels = levels(train$fbs)),
+  restecg = factor(0, levels = levels(train$restecg)),
+  thalach = z(130, "thalach"),
+  exang = factor(1, levels = levels(train$exang)),
+  oldpeak = z(1.6, "oldpeak"),
+  slope = factor(2, levels = levels(train$slope)),
+  ca = factor(as.character(z(0, "ca")), levels = levels(train$ca)),
+  thal = factor(2, levels = levels(train$thal))
+)
+
+# Dự đoán
+p_log <- predict(log_model, new_patient, type = "prob")[, "Yes"]
+p_knn <- predict(knn_model, new_patient, type = "prob")[, "Yes"]
+p_svm <- predict(svm_model, new_patient, type = "prob")[, "Yes"]
+
+p_result <- p_log # dùng kết quả của logistic regression để dự đoán
+# p_result <- mean(c(p_log, p_knn, p_svm)) # dùng trung bình dự đoán từ 3 mô hình để dự đoán
+cat("=== KẾT QUẢ DỰ ĐOÁN ===\n")
+cat(sprintf("  Logistic: %.4f | KNN: %.4f | SVM: %.4f | Voting: %.4f\n", p_log, p_knn, p_svm, p_result))
+
+cat(ifelse(
+  p_result > 0.5,
+  "\nCẢNH BÁO: BỆNH NHÂN CÓ NGUY CƠ BỆNH TIM",
+  "\nBÌNH THƯỜNG: BỆNH NHÂN KHÔNG CÓ NGUY CƠ BỆNH TIM"
+))
+```

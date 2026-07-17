@@ -1,0 +1,998 @@
+---
+title: "24133064_Nguyễn Thị Kiều Trang_BaiTap_R"
+output: html_document
+date: "2026-05-04"
+------------------
+
+# Câu 1 - Vector creation (5 điểm)
+
+## 1. Tạo vector từ -8 đến 9, bước 0.3
+
+```{r}
+x1 <- seq(from = -8, to = 9, by = 0.3)
+x1
+```
+
+## 2. Ghi đè lại vector theo thứ tự ngược lại
+
+```{r}
+x1 <- rev(x1)
+x1
+```
+
+## 3. Lặp vector và sắp xếp giảm dần
+
+### Tạo vector ban đầu
+
+```{r}
+x3 <- c(-1, 3, -5, 7, -9)
+```
+
+### Lặp lại vector 2 lần, mỗi phần tử lặp 10 lần
+
+```{r}
+x3 <- rep(x3, times = 2, each = 10)
+x3
+```
+
+### Sắp xếp giảm dần
+
+```{r}
+x_decrease <- sort(x3, decreasing = TRUE)
+x_decrease
+```
+
+## 4. Tạo một vector theo thứ tự gồm: dãy số 1 đến 6;giá trị 3.5 lặp bốn lần; số -5; một dãy 9 giá trị bắt đầu từ 100 và kết thúc tại chiều dài của vector gốc ở ý trước.
+
+```{r}
+a <- 1:6
+b <- rep(3.5, times=4)
+c <- -5
+base_vector <- c(a,b,c)
+base_vector
+seq(from=100, to = length(base_vector), length.out = 9)
+
+```
+
+# Câu 2 - Vector indexing (6 điểm)
+
+## 5. Tạo vector gồm: 5 phần tử cách đều từ 2 đến 8; vector c(1, -4.3, 13, -3.2) được lặp lại hai lần; và giá trị 1/7 + 5.
+
+```{r}
+a <- seq(from=2, to=8, length.out= 5)
+b <- c(1,-4.3, 13, -3.2)
+c <- 1/7+5
+vector <- c(a,rep(b,2),c)
+vector
+```
+
+## 6. Trích phần tử đầu và cuối của vector vừa tạo, lưu vào một biến mới.
+
+```{r}
+x6 <- c(vector[1], vector[length(vector)])
+x6
+```
+
+## 7. Tạo một biến mới lưu vector sau khi bỏ phần tử đầu và cuối.
+
+```{r}
+x7 <- vector[-c(1,length(vector))]
+x7
+```
+
+## 8. Dùng hai vector ở hai ý trên để tạo lại vector ban đầu.
+
+```{r}
+x8 <- c(x6[1], x7, x6[2])
+x8
+```
+
+## 9. Ghi đè vector ban đầu bằng phiên bản đã sắp xếp.
+
+```{r}
+x9 <- sort(x8, decreasing = TRUE)
+x9
+```
+
+## 10. Đảo ngược vector đã sắp xếp bằng toán tử :.
+
+```{r}
+x_rev <- x9[length(x9):1]
+x_rev
+```
+
+## 11. Tạo vector mới từ vector đã bỏ đầu/cuối bằng cách lặp phần tử thứ 3 ba lần, phần tử thứ 4 bốn lần và phần tử cuối hai lần.
+
+```{r}
+vector_new <- c(rep(x7[3],3), 
+                rep(x7[4],4), 
+                rep(x7[length(x7)],2))
+vector_new
+
+```
+
+# Câu 3 - Vector operations (5 điểm)
+
+## 12. Chuyển vector c(2, 0.5, 1, 2, 0.5, 1, 2, 0.5, 1) thành vector chỉ gồm các giá trị 1 bằng cách dùng một vector có chiều dài 3.
+
+```{r}
+x <- c(2, 0.5, 1, 2, 0.5, 1, 2, 0.5, 1)
+x*rep(c(0.5,2,1),3)
+```
+
+## 13. Cho vector c(45, 77, 20, 19, 101, 120, 212) mô tả nhiệt độ F. Chuyển sang độ C theo công thức C = 5/9 * (F - 32)
+
+```{r}
+F <- c(45, 77, 20, 19, 101, 120, 212)
+5/9 * (F-32)
+```
+
+## 14. Dùng vector c(2, 4, 6), vector c(1, 2), hàm rep() và phép toán * để tạo vector c(2, 4, 6, 4, 8, 12).
+
+```{r}
+a <- rep(c(2,4,6), 2)
+b <- rep(c(1,2), each =3)
+x14 <-a*b
+x14
+```
+
+## 15. Ghi đè bốn phần tử ở giữa của vector ở ý trên bằng cách recycle hai giá trị -1 và -10 theo thứ tự.
+
+```{r}
+x14[2:5] <- rep(c(-1,-10), length.out=4)
+x14
+
+```
+
+## 16. Tạo và lưu ma trận 4 x 2 gồm các giá trị 4.3, 3.1, 8.2, 8.2, 3.2, 0.9, 1.6 và 6.5 theo thứ tự dòng.
+
+```{r}
+m <- matrix(c(4.3,3.1,
+              8.2,8.2,
+              3.2,0.9,
+              1.6,6.5),
+            nrow =4, ncol =2, byrow=TRUE
+)
+m
+```
+
+## 17. Tạo biến mới từ ma trận trên bằng cách bỏ đi một dòng bất kỳ. Kiểm tra ma trận mới có kích thước 3 x 2.
+
+```{r}
+m_new <- m[-2, ]
+m_new
+```
+
+## 18. Ghi đè cột thứ hai của ma trận bằng giá trị của cột đó sau khi sắp xếp tăng dần.
+
+```{r}
+m[,2] <- sort(m[,2])
+m
+```
+
+## 19. Tạo biến mới bằng cách bỏ dòng 4 và cột 1. Đảm bảo kết quả là ma trận một cột, không phải vector.
+
+```{r}
+n <- m[-4,-1, drop=FALSE]
+n
+```
+
+## 20. Lưu bốn phần tử dưới cùng của ma trận thành ma trận 2x2
+
+```{r}
+m2 <- matrix(tail(as.vector(m),4), nrow=2, byrow=TRUE)
+m2
+```
+
+## 21. Ghi đè theo thứ tự các vị trí (4,2), (1,2), (4,1), (1,1) bằng một nửa các giá trị trên đường chéo chính của ma trận 2 x 2 ở ý trước.
+
+```{r}
+half_diag <- diag(m2)/2
+m[4,2] <- half_diag[1]
+m[1,2] <- half_diag[2]
+m[4,1] <- half_diag[1]
+m[1,1] <- half_diag[2]
+m
+```
+
+## 23. Cho A = [1; 2; 6] và B = [10; 3; 5]. Xác định những biểu thức nào tính được; nếu tính được, hãy tính giá trị: A * B; t(A) * B; t(B) * (A * t(A)); (A * t(A)) * t(B); [(B * t(B)) + (A * t(A)) - 100I3]^(-1), với I3 là ma trận đơn vị bậc 3. Ghi rõ biểu thức nào không hợp lệ và giải thích ngắn gọn.
+
+```{r}
+A <- matrix(c(1,2,6), ncol=1)
+A
+B <- matrix(c(10,3,5), ncol=1)
+B
+```
+
+### 1.A*B
+
+```{r}
+result1 <- A*B
+result1
+```
+
+### 2.t(A) * B
+
+```{r}
+result2 <- t(A)%*%B
+result2
+```
+
+### 3.t(B) * (A * t(A))
+
+```{r}
+result3 <- t(B)%*%(A%*%t(A))
+result3
+```
+
+### 4.(A * t(A)) * t(B)
+
+####  result4 <- (A %*% t(A)) %*% t(B)
+####  result4
+####   Không tính được vì:
+####  A %*% t(A) có kích thước 3x3
+####  t(B) có kích thước 1x3
+####  Số cột ma trận trái = 3
+####  Số dòng ma trận phải = 1
+####  3 ≠ 1 nên không nhân được
+
+### 5.[(B * t(B)) + (A * t(A)) - 100I3]^(-1)
+
+```{r}
+result5 <- solve((B %*% t(B)) + (A %*% t(A)) - 100*diag(3))
+result5
+```
+
+# Câu 6 - Array creation and indexing (6 điểm)
+
+## 24. Tạo và lưu mảng 3 chiều gồm 6 layer, mỗi layer là ma trận 4 x 2, với các giá trị là dãy số cách đều từ 10 đến 1
+
+```{r}
+arr <- array(seq(from =10, to=1, length.out=48), dim=c(4,2,6))
+arr
+```
+
+## 25. Tạo biến mới bằng cách lọc các phần tử ở dòng 1 và 4, cột 2, trên tất cả các layer của mảng.
+
+```{r}
+arr2 <- arr[c(1,4), 2, ]
+arr2
+```
+
+## 26. Lặp lại bốn lần dòng thứ 2 của ma trận vừa thu được để tạo mảng mới có chiều 2 x 2 x 2 x 3.
+
+```{r}
+rep(arr2[2,],4)
+```
+
+## 27. Tạo mảng mới bằng cách xóa layer thứ 6 của mảng ban đầu.
+
+```{r}
+arr3 <- arr[,,-6]
+arr3
+```
+
+## 28. Ghi đè các phần tử ở dòng 2 và 4, cột 2, tại các layer 1, 3 và 5 của mảng mới bằng giá trị -1
+
+```{r}
+arr[c(2,4),2, c(1,3,5)] <-1
+arr
+```
+
+# Câu 7 - Logical vectors (5 điểm)
+
+## Tạo vector c(6, 9, 7, 3, 6, 7, 9, 6, 3, 6, 6, 7, 1, 9, 1), sau đó thực hiện:
+  
+```{r}
+vct <- c(6,9, 7, 3, 6, 7, 9, 6, 3, 6, 6, 7, 1, 9, 1)
+vct
+```
+
+## 29. Xác định vị trí các phần tử bằng 6.
+
+```{r}
+which (vct==6)
+```
+
+## 30. Xác định vị trí các phần tử lớn hơn hoặc bằng 6.
+
+```{r}
+which (vct>=6 )
+```
+
+## 31. Xác định vị trí các phần tử nhỏ hơn 6 + 2.
+
+```{r}
+which (vct < (6+2))
+```
+
+## 32. Xác định vị trí các phần tử khác 6.
+
+```{r}
+which (vct != 6)
+```
+
+## 33. Bỏ 3 phần tử đầu, tạo mảng 2 x 2 x 3 và kiểm tra điều kiện <= 6/2 + 4 trước và sau khi tăng mỗi phần tử lên 2
+
+```{r}
+vct_new <- vct[-3]
+arr <- array(vct_new, dim=c(2,2,3))
+arr
+before <- arr <= (6/2 + 4)
+before
+arr_incr <- arr+2
+arr_incr
+after <- arr_incr <= (6/2 +4)
+after
+```
+
+## 34. Dùng any(), all() và which() để kiểm tra và liệt kê vị trí TRUE trong các logical array.
+
+```{r}
+any(before)
+all(before)
+which(before)
+```
+
+# Câu 8 - Logical operations (5 điểm)
+
+## 35. Tạo vector x = c(7, 1, 7, 10, 5, 9, 10, 3, 10, 8). Xác định các phần tử lớn hơn 5 hoặc bằng 2
+
+```{r}
+x <- c(7, 1, 7, 10, 5, 9, 10, 3, 10, 8)
+x
+condition_x <- (x>5)|(x==2)
+x[condition_x]
+```
+
+## 36. Tạo vector y = c(8, 8, 4, 4, 5, 1, 5, 6, 6, 8). Xác định các phần tử bé hơn hoặc bằng 6 và khác 4.
+
+```{r}
+y <- c(8, 8, 4, 4, 5, 1, 5, 6, 6, 8)
+y
+condition_y <- (y<=6)&(y!=4)
+y[condition_y]
+```
+
+## 37. Xác định những phần tử trong x hoặc y thỏa mãn đồng thời hai điều kiện ở hai ý trên.
+
+```{r}
+condition_all <- condition_x&condition_y
+x[condition_all]
+y[condition_all]
+```
+
+## 38. Tạo z = x + y. Xác định các phần tử của z >= 14 nhưng khác 15; đồng thời xét vector y/x và trích các giá trị lớn  hơn 4 hoặc nhỏ hơn hoặc bằng 2.
+
+```{r}
+z <- x+y
+z
+condition_z <- (z >= 14) & (z != 15)
+z[condition_z]
+yx <- y / x
+condition_yx <- (yx > 4) | (yx <= 2)
+yx[condition_yx]
+```
+
+# Câu 9 - Logical indexing (6 điểm)
+
+## 39. Tạo x = c(7, 5, 6, 1, 2, 10, 8, 3, 8, 2). Trích các phần tử >= 5 và gán cho y.
+
+```{r}
+x <- c(7, 5, 6, 1, 2, 10, 8, 3, 8, 2)
+y <- x[x>=5]
+y
+```
+
+## 40. Liệt kê phần còn lại của x sau khi bỏ các phần tử >= 5
+
+```{r}
+x_remaining <- x[x<5]
+x_remaining
+```
+
+## 41. Dùng y để tạo ma trận z kích thước 2 x 3 theo thứ tự dòng.
+
+```{r}
+z <- matrix(
+  y, nrow=2, ncol=3, byrow=TRUE
+)
+z
+```
+
+## 42. Thay các phần tử có giá trị 8 trong z bằng bình phương của phần tử ở dòng 1, cột 2 của z.
+
+```{r}
+value_square <- z[1,2]^2
+value_square
+z[z==8]<-value_square
+z
+```
+
+## 43. Kiểm tra tất cả giá trị trong z có <= 25 và > 4 hay không
+
+```{r}
+all((z<=25)&(z>4))
+```
+
+# PHẦN B. LAB 2 - STRING, FACTOR, LIST, DATA FRAME, CONTROL STRUCTURES VÀ FUNCTION
+
+# Câu 1 - String (5 điểm)
+
+## 44. Tạo và lưu chuỗi có dạng chính xác như sau, bao gồm xuống dòng và thụt dòng tương ứng:
+###   "The quick brown fox
+###  jumped over
+###  the lazy dogs"
+
+```{r}
+str1 <- "The quick brown fox
+ jumped over
+ the lazy dogs"
+cat(str1)
+```
+
+## 45. Với num1 <- 4 và num2 <- 0.75, viết một dòng code xuất chuỗi: The result of multiplying 4 by 0.75 is 3. Kiểm tra kết quả 3 đúng bằng tích của hai biến.
+
+```{r}
+num1 <- 4
+num2 <- 0.75
+result <- num1 * num2
+paste("The result of multiplying",
+      num1,
+      "by",
+      num2,
+      "is",
+      result)
+result == (num1 * num2)
+```
+
+## 46. Với home <- "data analysis/Labs/", thay chuỗi data bằng AI.
+
+```{r}
+home <- "data analysis/Labs/"
+sub("data", "AI", home)
+```
+
+## 47. Với s <- "Learning programming with R is very interesting", hãy: trích ký tự thứ 5 đến 10; chèn "easy and " trước "very interesting"; thay tất cả "ing" bằng "ed".
+
+```{r}
+s <- "Learning programming with R is very interesting"
+s
+substring(s, 5, 10)
+sub("very interesting",
+    "easy and very interesting",
+    s)
+gsub("ing", "ed", s)
+```
+
+# Câu 2 - Factor (7 điểm)
+
+## Dữ liệu mô tả lớp học gồm 57 sinh viên. Sáu sinh viên nữ ở các dòng: 18, 33, 36, 49, 50, 53. Ba vector a, b, c mô tả chỉ số sinh viên thuộc lớp A, B, C như sau:
+## a = c(2, 3, 6, 9, 12, 14, 19, 22, 28, 30, 33, 37, 42, 43, 45, 46, 49, 54, 57)
+## b = c(1, 5, 8, 10, 11, 20, 21, 23, 25, 26, 32, 38, 39, 41, 44, 51)
+## c = c(4, 7, 13, 15, 16, 17, 18, 24, 27, 29, 31, 34, 35, 36, 40, 47, 48, 50, 52, 53, 55, 56)
+
+## 48. Tạo character vector sex nhận giá trị M/F và character vector class nhận giá trị A/B/C; kiểm tra các giá trị nằm đúng vị trí như mô tả.
+
+```{r}
+a <- c(2, 3, 6, 9, 12, 14, 19, 22, 28, 30, 33, 37, 42, 43, 45, 46, 49, 54, 57)
+b <- c(1, 5, 8, 10, 11, 20, 21, 23, 25, 26, 32, 38, 39, 41, 44, 51)
+c <- c(4, 7, 13, 15, 16, 17, 18, 24, 27, 29, 31, 34, 35, 36, 40, 47, 48, 50, 52, 53, 55, 56)
+female <- c( 18, 33, 36, 49, 50, 5)
+sex <- rep("M", 57)
+sex[female] <- "F"
+sex
+class <- rep("", 57)
+class[a] <- "A"
+class[b] <- "B"
+class[c] <- "C"
+class
+sex[female]
+class[a]
+class[b]
+class[c]
+```
+
+## 49. Tạo hai factor vector từ sex và class. Giải thích ordered=TRUE có phù hợp không; nếu thêm ordered=TRUE, R sắp xếp levels như thế nào
+
+```{r}
+sex_factor <- factor(sex)
+class_factor <- factor(class)
+sex_factor
+class_factor
+```
+
+### ordered = TRUE không phù hợp vì:
+### giới tính và lớp học không có thứ tự tự nhiên
+### Nếu thêm ordered = TRUE,
+### R sẽ sắp xếp levels theo alphabet:
+### A < B < C
+### F < M
+
+## 50. Trả về factor vector của lớp chỉ gồm sinh viên nam.
+
+```{r}
+class_factor[sex == "M"]
+```
+
+## 51. Trả về factor vector của lớp A.
+
+```{r}
+class_factor[class == "A"]
+```
+
+## 52. Với vector month đã cho trong file lab, tạo biến quarter gồm Q1, Q2, Q3, Q4 tương ứng các tháng 1-3, 4-6, 7-9, 10-12.
+
+```{r}
+month <- 1:12
+quarter <- factor(
+  rep(c("Q1", "Q2", "Q3", "Q4"),
+      each = 3)
+)
+quarter
+```
+
+## 53. Trích ra các sinh viên thuộc lớp A và sinh ở quí Q1.
+
+```{r}
+month <- rep(1:12, length.out = 57)
+quarter <- factor(
+  rep(c("Q1","Q2","Q3","Q4"), each = 3)
+)
+quarter_student <- quarter[month]
+which((class == "A") & (quarter_student == "Q1"))
+```
+
+# Câu 3 - List (7 điểm)
+
+## 54. Tạo list gồm: dãy 20 giá trị từ -4 đến 4 cách đều nhau; logical matrix 3 x 3 theo cột từ c(F, T, T, T, F, T, T, F, F); vector gồm "don", "quixote"; factor vector c("LOW","MED","LOW","MED","MED","HIGH").
+
+```{r}
+nums <- seq(from = -4,
+            to = 4,
+            length.out = 20)
+logic_mat <- matrix(
+  c(F, T, T,
+    T, F, T,
+    T, F, F),
+  nrow = 3,
+  byrow = FALSE
+)
+chars <- c("don", "quixote")
+facs <- factor(
+  c("LOW","MED","LOW","MED","MED","HIGH")
+)
+mylist <- list(
+  nums,
+  logic_mat,
+  chars,
+  facs
+)
+mylist
+```
+
+## 55. Trích dòng 2 và 1 của cột 2 và 3 theo thứ tự từ logical matrix.
+
+```{r}
+mylist[[2]][c(2,1), c(2,3)]
+```
+
+## 56. Dùng sub() để đổi "quixote" thành "Quixote" và "don" thành "Don". Sau đó thêm chuỗi nhiều dòng: Windmills!   ATTACK! / -\Don Quixote/-.
+
+```{r}
+chars_new <- sub("don", "Don", chars)
+chars_new <- sub("quixote",
+                 "Quixote",
+                 chars_new)
+chars_new
+quote_text <- "Windmills!
+ATTACK!
+/-\\Don Quixote/-"
+cat(quote_text)
+```
+
+## 57. Xuất các giá trị từ dãy -4 đến 4 lớn hơn 1.
+
+```{r}
+mylist[[1]][mylist[[1]] > 1]
+```
+
+## 58. Dùng which() xác định vị trí của factor vector nhận giá trị MED.
+
+```{r}
+which(mylist[[4]] == "MED")
+```
+
+## 59. Tạo list mới gồm facs, nums = c(3,2.1,3.3,4,1.5,4.9), và oldlist chứa ba thành phần đầu của list trước đó.
+
+```{r}
+nums2 <- c(3,2.1,3.3,4,1.5,4.9)
+newlist <- list(
+  facs = facs,
+  nums = nums2,
+  oldlist = mylist[1:3]
+)
+newlist
+```
+
+## 60. Từ list mới, trích facs tương ứng với nums >= 3; thêm flags là logical vector chiều dài 6 từ việc lặp hai lần cột thứ 3 của logical matrix trong oldlist; dùng !flags để trích nums ứng với FALSE; ghi đè character string vector trong oldlist bằng "Don Quixote".
+
+```{r}
+newlist$facs[newlist$nums >= 3]
+flags <- rep(newlist$oldlist[[2]][,3], 2)
+flags
+newlist$nums[!flags]
+newlist$oldlist[[3]] <- "Don Quixote"
+newlist
+```
+
+# Câu 4 - Data frame (8 điểm)
+## Tạo data frame dframe như sau. person là character vector; sex là factor có levels F, M; funny là factor có levels Low, Med, High.
+
+```{r}
+person <- c("Stan",
+            "Francine",
+            "Steve",
+            "Roger",
+            "Hayley",
+            "Klaus")
+
+sex <- factor(
+  c("M","F","M","M","F","M")
+)
+funny <- factor(
+  c("High","Med","Low","High","Med","Med"),
+  levels = c("Low","Med","High")
+)
+df <- data.frame(
+  person,
+  sex,
+  funny
+)
+df
+```
+
+## 61. Thêm biến age: Stan và Francine 41 tuổi, Steve 15, Hayley 21, Klaus 60, Roger 1600 tuổi.
+
+```{r}
+df$age <- c(41,41,15,1600,21,60)
+df 
+```
+
+## 62. Sắp xếp lại các cột theo thứ tự: person, age, sex, funny.
+
+```{r}
+df <- df[, c("person","age","sex","funny")]
+df
+```
+
+## 63. Thêm biến age.mon = age * 12.
+
+```{r}
+df$age.mon=df$age*12
+df
+```
+
+## 64. Tạo anotherdframe theo bảng dưới đây, sau đó kết hợp với dframe để tạo newdframe.
+
+```{r}
+anotherframe <- data.frame(
+  person = c("Peter",
+             "Lois",
+             "Meg",
+             "Chris",
+             "Stewie",
+             "Brian"),
+  
+  age = c(42,40,17,14,1,7),
+  sex = factor(c("M","F","F","M","M","M")),
+  funny = factor(
+    c("High","High","Low","Med","High","Med"),
+    levels = c("Low","Med","High")
+  ),
+  age.mon = c(504,480,204,168,12,84)
+)
+anotherframe
+newdf <- rbind(df, anotherframe)
+newdf
+```
+
+## 65. Viết một dòng code trích person và age của những người là nữ và có funny là Med hoặc High.
+
+```{r}
+newdf[
+  (newdf$sex == "F") &
+    (newdf$funny %in% c("Med","High")),
+  c("person","age")
+]
+```
+
+## 66. Trích những người có tên bắt đầu bằng chữ S, gợi ý dùng substr().
+
+```{r}
+newdf[
+  substr(newdf$person, 1, 1) == "S",
+]
+```
+
+# Câu 5 - if và switch (5 điểm)
+
+```{r}
+v1 <- c(2,1,1,3,2,1,0)
+v2 <- c(3,8,2,2,0,0,0)
+```
+
+## 67. Dùng v1 và v2, viết một dòng code: nếu tổng hai phần tử tương ứng > 3 thì nhân chúng, ngược lại cộng chúng
+
+```{r}
+ifelse(v1+v2>3, v1*v2, v1+v2)
+```
+
+## 68. Viết hàm tính tiền điện theo bảng bậc thang bên dưới, một phiên bản dùng if và một phiên bản dùng switch.
+
+```{r}
+tinh_tien_if <- function(kwh){
+  if(kwh <= 50){
+    price <- 1549
+  } else if(kwh <= 100){
+    price <- 1600
+  } else if(kwh <= 200){
+    price <- 1858
+  } else if(kwh <= 300){
+    price <- 2340
+  } else if(kwh <= 400){
+    price <- 2615
+  } else {
+    price <- 2701
+  }
+  kwh * price
+}
+tinh_tien_if(120)
+
+tinh_tien_switch <- function(kwh){
+  price <- switch(
+    TRUE,
+    kwh <= 50  , 1549,
+    kwh <= 100 , 1600,
+    kwh <= 200 , 1858,
+    kwh <= 300 , 2340,
+    kwh <= 400 , 2615,
+    2701
+  )
+  kwh * price
+}
+tinh_tien_switch(120)
+```
+
+# Câu 6 - for (3 điểm)
+
+## Cho đoạn code dùng hai vòng lặp for để tính ma trận tích ngoài giữa v1 = 1:3 và v2 = 4:7. Hãy viết lại bằng một vòng lặp for mà vẫn thu được kết quả tương tự.
+
+```{r}
+v1 <- 1:3
+v2 <- 4:7
+result <- matrix(
+  0,
+  nrow = length(v1),
+  ncol = length(v2)
+)
+for(i in 1:length(v1)){
+  result[i, ] <- v1[i] * v2
+}
+result
+```
+
+# Câu 7 - while (3 điểm)
+## Dùng while để tính n giai thừa. Biết 0! = 1 và i! = i * (i - 1)! với mọi i > 0, i thuộc N. Kiểm tra với n <- 10
+
+```{r}
+n <- 10
+i <- 1
+fact <- 1
+while(i <= n){
+  fact <- fact * i
+  i <- i + 1
+}
+fact
+```
+
+# Câu 8 - apply (4 điểm)
+
+```{r}
+a <- matrix(1:12, 3, 4)
+b <- array(1:18, dim = c(3, 3, 2))
+```
+
+## 69. Thực thi các lệnh apply(a, 1, sum), apply(a, 2, sum), apply(b, 1, sum), apply(b, 2, sum), apply(b, 3, sum) và quan sát kết quả.
+
+```{r}
+apply(a, 1, sum)
+apply(a, 2, sum)
+apply(b, 1, sum)
+apply(b, 2, sum)
+apply(b, 3, sum)
+```
+
+## 70. Dùng apply() để tính tổng các số lẻ ở mỗi dòng của ma trận a.
+
+```{r}
+apply(
+  a,
+  1,
+  function(x){
+    sum(x[x %% 2 == 1])
+  }
+)
+```
+
+## 71. Dùng apply() để tính tích các số chẵn ở mỗi cột của ma trận a.
+
+```{r}
+apply(
+  a,
+  2,
+  function(x){
+    prod(x[x %% 2 == 0])
+  }
+)
+```
+
+# Câu 9 - break, next và repeat (4 điểm)
+## 72. Dùng vòng lặp for và next để tính tổng các số không chia hết cho 3 trong một vector x = sample(1:1000, 100). Đặt set.seed(123) trước khi sample.
+
+```{r}
+set.seed(123)
+x<-sample(1:1000,100)
+tong<-0
+for(i in x){
+  if(i%%3==0){
+    next}
+  tong<-tong+i
+}
+tong
+```
+
+## 73. Dùng repeat và break để in ra các số Fibonacci bé hơn 100
+
+```{r}
+a <- 0
+b <- 1
+repeat{
+  if(a >= 100){
+    break
+  }
+  print(a)
+  temp <- a + b
+  a <- b
+  b <- temp
+}
+```
+
+# Câu 10 - function (9 điểm)
+
+## 74. Viết hàm fib(limit) để tạo dãy Fibonacci bé hơn hoặc bằng limit; kiểm tra với fib(100).
+
+```{r}
+fib <- function(limit){
+  a <- 0
+  b <- 1
+  result <- c()
+  while(a <= limit){
+    result <- c(result, a)
+    temp <- a + b
+    a <- b
+    b <- temp
+  }
+  result
+}
+fib(100)
+```
+
+## 75. Viết hàm compoundInterest(P, i, y, t = 12) để tính F = P * (1 + i/(100t))^(t*y). Kiểm tra với P = 100000000, i = 6, y = 30 và các t khác nhau.
+
+```{r}
+compoundInterest <- function(P, i, y, t = 12){
+  F <- P * (1 + i/(100*t))^(t*y)
+  return(F)
+}
+compoundInterest(
+  P = 100000000,
+  i = 6,
+  y = 30
+)
+compoundInterest(
+  P = 100000000,
+  i = 6,
+  y = 30,
+  t = 4
+)
+compoundInterest(
+  P = 100000000,
+  i = 6,
+  y = 30,
+  t = 1
+)
+```
+
+## 76. Mở rộng hàm compoundInterest với tham số plotit mặc định TRUE. Nếu plotit = FALSE thì trả về vector F theo  từng năm; nếu TRUE thì vẽ F theo năm bằng plot(..., type = "s").
+
+```{r}
+compoundInterest2 <- function(P,i,y,t = 12,plotit = TRUE
+){
+  years <- 1:y
+  F <- P * (1 + i/(100*t))^(t*years)
+  if(plotit == FALSE){
+    return(F)
+  } else {
+    plot(
+      years,
+      F,
+      type = "s",
+      xlab = "Year",
+      ylab = "Future Value",
+      main = "Compound Interest"
+    )
+  }
+}
+compoundInterest2(
+  100000000,
+  6,
+  30,
+  plotit = FALSE
+)
+compoundInterest2(
+  100000000,
+  6,
+  30
+)
+```
+
+## 77. Định nghĩa computeMatrix(m) với m là ma trận vuông chứa chuỗi. Nếu đường chéo chính có chuỗi bắt đầu bằng  ký tự g hoặc G thì thay các chuỗi đó bằng "here"; nếu không có chuỗi nào như vậy, thay toàn bộ ma trận bằng ma trận đơn vị cùng bậc. Kiểm tra bằng ba ma trận mẫu trong file lab.
+
+```{r}
+computeMatrix <- function(m){
+  d <- diag(m)
+  check <- grepl("^[gG]", d)
+  if(any(check)){
+    diag(m)[check] <- "here"
+  } else {
+    m <- diag(nrow(m))
+  }
+  return(m)
+}
+
+### Ma trận mẫu 1
+
+m1 <- matrix(
+  c("go", "a",
+    "b", "Good"),
+  
+  nrow = 2,
+  byrow = TRUE
+)
+computeMatrix(m1)
+
+### Ma trận mẫu 2
+
+m2 <- matrix(
+  c("apple", "b",
+    "c", "dog"),
+  
+  nrow = 2,
+  byrow = TRUE
+)
+computeMatrix(m2)
+
+### Ma trận mẫu 3
+
+m3 <- matrix(
+  c("Green", "x", "y",
+    "a", "hello", "b",
+    "c", "d", "game"),
+  
+  nrow = 3,
+  byrow = TRUE
+)
+
+computeMatrix(m3)
+```

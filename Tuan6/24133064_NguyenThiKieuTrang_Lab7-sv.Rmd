@@ -1,0 +1,323 @@
+---
+title: "Giới thiệu phương pháp bootstrap"
+outhor: "Nguyễn Thị Kiều Trang-24133064"
+date: 4/6/2026
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+## 1. Giới thiệu
+Trong phần này, chúng ta sẽ khám phá và trực quan hóa dữ liệu bằng cách sử dụng bộ thư viện **tidyverse** và thực hiện suy luận thống kê bằng cách sử dụng thư viện **infer**. 
+
+### Tải các package
+Bạn cần tải các package sau:
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+library(infer)
+```
+
+
+### Dữ liệu
+
+Một báo cáo của Pew Research năm 2019 cho biết như sau: 
+
+> Khoảng sáu phần mười người trưởng thành ở Mỹ (62%) nói rằng biến đổi khí hậu hiện đang ảnh hưởng rất nhiều đến cộng đồng địa phương của họ, theo một cuộc khảo sát mới của Trung tâm Nghiên cứu Pew.
+
+> **Nguồn:** https://www.pewresearch.org/fact-tank/2019/12/02/most-americans-say-climate-change-impacts-their-community-but-effects-vary-by-region/
+
+
+Để đơn giản hóa việc tính toán, chúng ta sẽ giả định tổng quy mô quần thể là 100.000 (mặc dù quy mô đó nhỏ hơn quy mô quần thể của tất cả những người trưởng thành ở Hoa Kỳ). 
+
+Ta sẽ giả định 62\% này là tỷ lệ quần thể thực và tìm hiểu về cách tỷ lệ mẫu có thể thay đổi từ mẫu này sang mẫu khác bằng cách lấy các mẫu nhỏ hơn từ quần thể. Trước tiên, chúng ta sẽ tạo ra quần thể của mình với quy mô quần thể là 100.000. Điều này có nghĩa là 62.000 (62\%) dân số trưởng thành nghĩ rằng biến đổi khí hậu ảnh hưởng đến cộng đồng của họ, và 38.000 người còn lại không nghĩ như vậy. 
+
+
+```{r}
+us_adults <- tibble(
+  climate_change_affects = c(rep("Yes", 62000), rep("No", 38000))
+)
+```
+
+Biến `climate_change_affects` chứa các phản hồi cho câu hỏi *"Bạn có nghĩ rằng biến đổi khí hậu đang ảnh hưởng đến cộng đồng địa phương của bạn không?"*
+
+Chúng ta có thể nhanh chóng trực quan hóa phân bố của những phản hồi này bằng cách sử dụng biểu đồ thanh.
+
+```{r bar-plot-pop, fig.height=2.5, fig.width=10}
+ggplot(us_adults, aes(x = climate_change_affects)) +
+  geom_bar() +
+  labs(
+    x = "", y = "",
+    title = "Climate change response"
+  ) +
+  coord_flip() 
+```
+
+Chúng ta cũng có thể dùng các thống kê tóm tắt (summary statistics). 
+
+```{r, results = TRUE}
+us_adults %>%
+  count(climate_change_affects) %>%
+  mutate(p = n /sum(n))
+```
+
+Ta sẽ bắt đầu với một mẫu ngẫu nhiên đơn giản có kích thước 60 từ quần thể. 
+
+```{r sample}
+n <- 60
+samp <- us_adults %>%
+  sample_n(size = n)
+
+```
+
+**Câu hỏi 1.** Bao nhiêu phần trăm người trưởng thành trong mẫu của bạn nghĩ rằng biến đổi khí hậu ảnh hưởng đến cộng đồng địa phương của họ? 
+
+**Gợi ý:** Giống như chúng ta đã làm với quần thể, chúng ta có thể tính toán tỷ lệ những người trong mẫu này cho rằng biến đổi khí hậu ảnh hưởng đến cộng đồng địa phương của họ.
+
+**Trả lời:** 
+```{r, results = TRUE}
+samp %>%
+  count(climate_change_affects)%>%
+  mutate(
+    p=n/sum(n),
+    percent=p*100
+  )
+```
+
+**Câu hỏi 2.** Bạn có mong đợi tỷ lệ mẫu của sinh viên khác giống với của bạn không? Bạn có mong đợi nó tương tự không? Tại sao hoặc tại sao không? 
+
+**Trả lời:** 
+
+Không.Vì hiện tượng biến động mẫu (sampling variability). Mỗi khi một sinh viên khác lấy một mẫu ngẫu nhiên mới từ cùng một quần thể, họ sẽ chọn trúng một nhóm người trưởng thành hoàn toàn ngẫu nhiên và khác với nhóm của bạn. Do đặc điểm của từng cá nhân trong mỗi mẫu khác nhau, số lượng người trả lời "có ảnh hưởng" sẽ thay đổi ít nhiều, dẫn đến tỷ lệ phần trăm ($p$) tính được giữa các mẫu hiếm khi nào bằng nhau tuyệt đối.
+
+## 2. Bootstrapping
+Một cách khác là sử dụng mô phỏng, hay cụ thể hơn là sử dụng **bootstrapping**. Thuật ngữ **bootstrapping** xuất phát từ cụm từ “pulling oneself up by one's bootstraps (kéo một người lên bởi đôi ủng của người đó)”, là một phép ẩn dụ để hoàn thành một nhiệm vụ bất khả thi mà không cần bất kỳ sự trợ giúp nào từ bên ngoài. Trong trường hợp này, nhiệm vụ bất khả thi là ước tính một tham số quần thể (tỷ lệ quần thể không xác định) và chúng ta sẽ phải hoàn thành nó bằng cách chỉ sử dụng dữ liệu từ mẫu đã cho. Lưu ý rằng việc phát biểu điều gì đó về một tham số quần thể chỉ sử dụng thông tin từ một mẫu quan sát được là mấu chốt của suy luận thống kê. 
+
+Về bản chất, bootstrapping giả định rằng có nhiều quan sát hơn trong các quần thể giống như các quan sát trong mẫu được quan sát. Vì vậy, chúng ta “tái tạo lại (reconstruct)” quần thể bằng cách lấy mẫu lại có hoàn lại (with replacement) từ mẫu của chúng ta. Cách thực hiện bootstrapping như sau: 
+
+- **Bước 1.** Lấy một mẫu bootstrap (bootstrap sample) - một mẫu ngẫu nhiên được lấy **có hoàn lại** từ mẫu ban đầu, có cùng kích thước với mẫu ban đầu.
+
+- **Bước 2.** Tính toán thống kê bootstrap (bootstrap statistic) - một thống kê như trung bình, trung vị, tỷ lệ, $\cdots$ được tính trên các mẫu bootstrap.
+
+- **Bước 3.** Lặp lại các bước (1) và (2) nhiều lần để tạo một phân phối bootstrap (bootstrap distribution) - một phân phối của các thống kê bootstrap (bootstrap statistic).
+
+- **Bước 4.** Tính các chặn trên và dưới của khoảng tin cậy XX% như là phần XX% nằm giữa của phân phối bootstrap.
+
+Thay vì viết mã từng bước này, chúng ta sẽ xây dựng khoảng tin cậy bằng cách sử dụng thư viện **infer**. 
+
+
+Dưới đây là tổng quan về các hàm chúng ta sẽ sử dụng để xây dựng khoảng tin cậy này: 
+
++-------------+--------------------------------------------------------------+
+| Hàm         | Mục đích                                                     |
++=============+==============================================================+
+| `specify`   | Xác định biến quan tâm của bạn                               |
++-------------+--------------------------------------------------------------+
+| `generate`  | Số lượng mẫu bạn muốn tạo                                    |
++-------------+--------------------------------------------------------------+
+| `calculate` | Thống kê mẫu (sample statistic) mà bạn muốn thực hiện suy luận hoặc bạn cũng có thể coi đây là tham số quần thể (population parameter) mà bạn muốn thực hiện suy luận |
++-------------+--------------------------------------------------------------+
+| `get_ci`    | Tìm khoảng tin cậy                                           |
++-------------+--------------------------------------------------------------+
+
+Đoạn mã sau sẽ tìm khoảng tin cậy 95 phần trăm cho tỷ lệ người trưởng thành Hoa Kỳ nghĩ rằng biến đổi khí hậu ảnh hưởng đến cộng đồng địa phương của họ. 
+
+```{r, results = TRUE}
+boot_dist <- samp %>%
+  specify(response = climate_change_affects, success = "Yes") %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "prop")
+
+boot_ci <- boot_dist %>%
+  get_ci(level = 0.95)
+
+boot_ci
+```
+
+- Trong `specify` chúng ta chỉ định biến `response` và level của biến đó mà chúng ta đang gọi là `success`.
+
+- Trong `generate` chúng ta cung cấp số lần lấ mẫu lại (resample) mà chúng ta muốn từ quần thể trong đối số `reps` (đây phải là một số lớn hợp lý) cũng như loại lấy mẫu lại mà chúng ta muốn thực hiện, đó là `"bootstrap"` trong trường hợp xây dựng khoảng tin cậy.
+
+- Sau đó, chúng ta `calculate` thống kê mẫu về mức độ quan tâm cho mỗi boostrap sample này, ứng với `stat = "prop"` (là một tỷ lệ).
+
+Tóm tắt: mặc dù chúng ta không biết toàn bộ quần thể trông như thế nào, nhưng chúng ta tin tưởng 95% rằng tỷ lệ thực sự của người trưởng thành Hoa Kỳ nghĩ rằng biến đổi khí hậu ảnh hưởng đến cộng đồng địa phương của họ nằm giữa hai giới hạn được báo cáo do kết quả của quá trình này.
+
+
+## 3. Mức tin cậy (confidence level)
+
+**Câu hỏi 3:** Trong phần diễn giải ở trên, chúng ta đã sử dụng cụm từ “tin cậy 95%”. "Độ tin cậy 95%" có nghĩa là gì?
+
+ĐMức tin cậy 95% có nghĩa là nếu quá trình lấy mẫu và xây dựng khoảng tin cậy được lặp lại rất nhiều lần thì khoảng 95% các khoảng tin cậy thu được sẽ chứa tỷ lệ quần thể thực sự. Đây là mức độ tin cậy của phương pháp tạo khoảng tin cậy chứ không phải xác suất của một khoảng tin cậy cụ thể.
+
+
+**Câu hỏi 4:** Khoảng tin cậy của bạn có chứa tỷ lệ quần thể thực sự của những người trưởng thành Hoa Kỳ nghĩ rằng biến đổi khí hậu ảnh hưởng đến cộng đồng địa phương của họ không? Khoảng tin cậy của các sinh viên khác trong lớp của bạn có chứa tỷ lệ quần thể thực sự không?
+**Trả lời: **
+
+Khoảng tin cậy có chứa tỷ lệ quần thể thực sự là 0.62 vì giá trị 0.62 nằm giữa giới hạn dưới và giới hạn trên của khoảng tin cậy. Tuy nhiên, không phải tất cả khoảng tin cậy của các sinh viên khác đều chắc chắn chứa tỷ lệ quần thể thật vì luôn tồn tại khả năng sai số lấy mẫu.
+  
+**Câu hỏi 5:** Mỗi sinh viên có lẽ sẽ có khoảng tin cậy khác nhau một chút. Bạn mong đợi tỷ lệ những khoảng tin cậy đó chứa tỷ lệ quần thể thực là bao nhiêu? Tại sao?
+
+**Trả lời: **
+
+Em mong đợi khoảng 95% các khoảng tin cậy được xây dựng từ các mẫu khác nhau sẽ chứa tỷ lệ quần thể thực sự. Điều này là do mức tin cậy được chọn là 95%, nghĩa là phương pháp xây dựng khoảng tin cậy có khả năng bao phủ tham số thật khoảng 95% số lần lặp lại.
+
+Sử dụng đoạn mã sau để sau để tạo các biểu đồ cho các câu hỏi bên dưới (nếu cần). Bạn cần thiết lập `eval=TRUE` và `echo=FALSE` nếu muốn hiển thị kết quả nhưng không muốn hiển thị code.
+
+```{r, echo=TRUE, eval=TRUE, results = TRUE}
+
+set.seed(123)
+
+ci_50 <- tibble(id = 1:50) %>%
+  mutate(
+    ci = map(id, ~{
+      us_adults %>%
+        sample_n(size = 60) %>%
+        specify(response = climate_change_affects,
+                success = "Yes") %>%
+        generate(reps = 1000, type = "bootstrap") %>%
+        calculate(stat = "prop") %>%
+        get_ci(level = 0.95)
+    })
+  ) %>%
+  unnest(ci) %>%
+  mutate(
+    contains = lower_ci <= 0.62 &
+               upper_ci >= 0.62
+  )
+
+mean(ci_50$contains)
+
+ggplot(ci_50,
+       aes(x = id,
+           ymin = lower_ci,
+           ymax = upper_ci,
+           color = contains)) +
+  geom_linerange() +
+  geom_hline(yintercept = 0.62,
+             linetype = "dashed") +
+  labs(
+    title = "50 khoảng tin cậy 95%",
+    x = "Khoảng tin cậy",
+    y = "Tỷ lệ"
+  )
+
+```
+
+
+**Câu hỏi 6:** Với cỡ mẫu là 60, 1000 mẫu bootstrap cho mỗi khoảng tin cậy và 50 khoảng tin cậy được tạo, tỷ lệ khoảng tin cậy của bạn bao gồm tỷ lệ quần thể là bao nhiêu? Tỷ lệ này có chính xác bằng mức tin cậy không? Nếu không, hãy giải thích tại sao.
+
+**Trả lời: **
+ 
+Tỷ lệ khoảng tin cậy chứa tỷ lệ quần thể thực tế thường gần với mức tin cậy 95% nhưng không nhất thiết bằng chính xác 95%. Nguyên nhân là do số lần mô phỏng hữu hạn và tính ngẫu nhiên trong quá trình lấy mẫu. Khi số lượng khoảng tin cậy được tạo ra tăng lên, tỷ lệ này sẽ có xu hướng tiến gần hơn đến mức tin cậy lý thuyết.
+
+**Câu hỏi 7:** Chọn một mức độ tin cậy khác với 95%. Bạn có mong đợi khoảng tin cậy ở mức này rộng hơn hay hẹp hơn khoảng tin cậy mà bạn đã tính ở mức tin cậy 95% không? Giải thích lý do của bạn.
+
+**Trả lời: **
+
+Nếu chọn mức tin cậy thấp hơn 95% (ví dụ 90%) thì khoảng tin cậy sẽ hẹp hơn vì yêu cầu bao phủ tham số thực thấp hơn. Ngược lại, nếu chọn mức tin cậy cao hơn (ví dụ 99%) thì khoảng tin cậy sẽ rộng hơn để tăng khả năng chứa giá trị thực của quần thể.
+   
+**Câu hỏi 8:** Sử dụng mã từ thư viện **infer** và dữ liệu từ một mẫu bạn có (biến `samp`), hãy tìm khoảng tin cậy cho tỷ lệ người trưởng thành ở Hoa Kỳ cho rằng biến đổi khí hậu đang ảnh hưởng đến cộng đồng địa phương của họ với mức độ tin cậy mà bạn chọn (chọn giá trị khác 95\%) và giải thích nó.
+
+**Trả lời: **
+```{r summ-stat-pop, results = TRUE}
+set.seed(123)
+
+boot_dist_90 <- samp %>%
+  specify(response = climate_change_affects, success = "Yes") %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "prop")
+
+boot_ci_90 <- boot_dist_90 %>%
+  get_ci(level = 0.90)
+
+boot_ci_90
+```
+
+**Câu hỏi 9: ** Tính 50 khoảng tin cậy với mức tin cậy bạn chọn giống như ở câu 8, và vẽ tất cả các khoảng tin cậy trên một biểu đồ, và tính tỷ lệ số lượng khoảng tin cậy chứa tỷ lệ quần thể. Nhận xét về tỷ lệ này so với mức tin cậy đã chọn.
+
+**Trả lời: **
+
+```{r, echo=TRUE, eval=TRUE, results = TRUE}
+set.seed(123)
+
+ci_50_90 <- tibble(id = 1:50) %>%
+  mutate(
+    ci = map(id, ~{
+      us_adults %>%
+        sample_n(size = 60) %>%
+        specify(response = climate_change_affects,
+                success = "Yes") %>%
+        generate(reps = 1000, type = "bootstrap") %>%
+        calculate(stat = "prop") %>%
+        get_ci(level = 0.90)
+    })
+  ) %>%
+  unnest(ci) %>%
+  mutate(
+    contains = lower_ci <= 0.62 &
+               upper_ci >= 0.62
+  )
+```
+
+# Tỷ lệ khoảng tin cậy chứa tỷ lệ quần thể
+
+```{r}
+mean(ci_50_90$contains)
+```
+
+# Biểu đồ
+
+```{r}
+ggplot(ci_50_90,
+       aes(x = id,
+           ymin = lower_ci,
+           ymax = upper_ci,
+           color = contains)) +
+  geom_linerange() +
+  geom_hline(yintercept = 0.62,
+             linetype = "dashed") +
+  labs(
+    title = "50 khoảng tin cậy mức 90%",
+    x = "Khoảng tin cậy",
+    y = "Tỷ lệ"
+  )
+```
+
+Trong 50 khoảng tin cậy mức tin cậy 90% được tạo ra, có 86% khoảng tin cậy chứa tỷ lệ quần thể thực sự là 0.62. Tỷ lệ này khá gần với mức tin cậy đã chọn là 90% nhưng không hoàn toàn bằng nhau. Sự chênh lệch này xuất phát từ tính ngẫu nhiên của quá trình lấy mẫu và do số lượng khoảng tin cậy được tạo ra chỉ là 50. Nếu tăng số lần mô phỏng lên nhiều hơn, tỷ lệ này sẽ có xu hướng tiến gần hơn đến mức tin cậy lý thuyết là 90%.
+
+**Câu hỏi 10:** Với cỡ mẫu cho trước (giả sử 60), độ rộng của khoảng thay đổi như thế nào khi bạn tăng số lượng mẫu bootstrap. Giải thích câu trả lời của bạn. **Gợi ý:** Việc thay đổi số lượng mẫu bootstrap có ảnh hưởng đến sai số chuẩn không?
+
+**Trả lời: **
+
+```{r, echo=TRUE, eval=TRUE, results = TRUE}
+ci_100 <- samp %>%
+  specify(response = climate_change_affects,
+          success = "Yes") %>%
+  generate(reps = 100, type = "bootstrap") %>%
+  calculate(stat = "prop") %>%
+  get_ci(level = 0.90)
+
+ci_1000 <- samp %>%
+  specify(response = climate_change_affects,
+          success = "Yes") %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "prop") %>%
+  get_ci(level = 0.90)
+
+ci_5000 <- samp %>%
+  specify(response = climate_change_affects,
+          success = "Yes") %>%
+  generate(reps = 5000, type = "bootstrap") %>%
+  calculate(stat = "prop") %>%
+  get_ci(level = 0.90)
+
+ci_100
+ci_1000
+ci_5000
+
+```
+
+Khi tăng số lượng mẫu bootstrap từ 100 lên 1000 hoặc 5000, độ rộng của khoảng tin cậy thường thay đổi rất ít. Nguyên nhân là vì sai số chuẩn phụ thuộc chủ yếu vào cỡ mẫu ban đầu (n = 60), không phụ thuộc vào số lần bootstrap. Việc tăng số lượng mẫu bootstrap chỉ giúp ước lượng phân phối bootstrap chính xác và ổn định hơn, từ đó làm cho giới hạn khoảng tin cậy ít dao động giữa các lần chạy. Vì vậy, tăng số mẫu bootstrap không làm giảm đáng kể độ rộng của khoảng tin cậy.

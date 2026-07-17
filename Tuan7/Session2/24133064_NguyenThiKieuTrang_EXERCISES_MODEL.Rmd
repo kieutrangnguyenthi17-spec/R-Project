@@ -1,0 +1,363 @@
+---
+title: "24133064_NguyenThiKieuTrang_EXERCISES_MODEL"
+output: html_document
+date: "2026-06-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(caret)
+
+```
+
+BÀI TẬP MÔ HÌNH HỒI QUY TRONG R
+
+Câu 1:
+
+Sử dụng Linenear Regression để thực hiện việc dự đoán FEV dựa trên các thuộc tính age/ age và ht
+
+# 1. Đọc dữ liệu và gán cho biến data
+
+```{r}
+data <- read.csv("children_lung.csv")
+```
+
+# 2. Xem thông tin data: head(), số dòng, số cột, summary
+
+```{r}
+head(data)
+nrow(data)
+ncol(data)
+summary(data)
+```
+
+# 3. Tiền xử lý ( nếu cần)
+
+## Kiểm tra và xử lý giá trị thiếu 
+
+```{r}
+sum(is.na(data))
+colSums(is.na(data))
+
+data$age[is.na(data$ht)] <- median(data$ht, na.rm=TRUE)
+data$age[is.na(data$sex)] <- median(data$sex, na.rm=TRUE)
+data$age[is.na(data$smoke)] <- median(data$smoke, na.rm=TRUE)
+
+sum(is.na(data))
+```
+
+## Kiểm tra và xử lý giá trị trùng
+
+```{r}
+sum(duplicated(data))
+data <- data[!duplicated(data),]
+sum(duplicated(data))
+```
+# 4. Vẽ biểu đồ quan sát mối liên hệ giữa FEV và age
+
+```{r}
+ggplot(data=data, aes(x=age,y=FEV))+
+  geom_point(color="blue", shape=19)+
+  labs(
+    title="Relationship between Age and FEV",
+    x="Age",
+    x="FEV"
+  )
+```
+
+Nhận xét
+
+- Mối quan hệ tổng quan: Biểu đồ phân tán cho thấy giữa hai biến Age (Tuổi) và FEV có mối tương quan thuận (đồng biến) và mang tính chất tuyến tính. Khi độ tuổi của đối tượng tăng lên thì chỉ số thể tích thở ra FEV nhìn chung cũng có xu hướng tăng theo.
+
+- Đặc điểm cấu trúc dữ liệu: Các điểm dữ liệu không trải đều liên tục trên trục hoành mà tập trung thành từng cột thẳng đứng ứng với các giá trị nguyên từ 3 đến 9. Điều này chứng tỏ biến độc lập Age trong tập dữ liệu được thu thập dưới dạng dữ liệu rời rạc (chỉ lấy các mốc tuổi tròn, không có tuổi lẻ kiểu 4.5 hay 5.2 tuổi).
+
+Vấn đề vi phạm giả định hồi quy
+
+- Vi phạm giả định về đồng phương sai (Heteroscedasticity): Dấu hiệu trên biểu đồ: Độ phân tán (độ dài) của các cột dữ liệu thay đổi rõ rệt theo xu hướng tăng dần của tuổi. Ở mốc tuổi nhỏ (3, 4 tuổi), các điểm dữ liệu tập trung rất sát nhau (biến động nhỏ). Tuy nhiên, càng về các mốc tuổi lớn (8, 9 tuổi), các điểm dữ liệu càng loe rộng ra tạo thành hình cái phễu (biến động cực kỳ lớn).
+
+- Xu hướng phi tuyến tính nhẹ ở hai đầu dữ liệu: Dấu hiệu trên biểu đồ: Tốc độ tăng trưởng của FEV không hoàn toàn đều đặn theo một đường thẳng tuyệt đối. Nếu nhìn kỹ từ mốc 3 tuổi đến 9 tuổi, đường đi của các điểm dữ liệu có xu hướng hơi cong nhẹ hướng lên (độ dốc ở các mốc tuổi lớn cao hơn mốc tuổi nhỏ).
+
+# 5. Chia data thành 2 bộ dữ liệu data_FEV_less_10 và data_FEV_more_10
+
+```{r}
+data_FEV_less_10 <- subset(data, FEV<10)
+data_FEV_more_10 <- subset(data, FEV>=10)
+
+dim(data_FEV_less_10)
+dim(data_FEV_more_10)
+```
+
+# 6. Với data_FEV_more_10
+
+## a. Thực hiện Simple Linear Regression để dự đoán FEV từ age. Xây dựng model. Đánh giá model 
+
+```{r}
+model1 <- lm(FEV~age,data=data_FEV_more_10)
+summary(model1)
+```
+
+## b. Cho age lần lượt là:[2,3,4,5]. Hãy cho biết FEV lần lượt là bao nhiêu?
+
+```{r}
+new_data <- data.frame(
+  age=c(2,3,4,5)
+  )
+predict(model1, new_data)
+```
+
+## c.Trực quan hóa kết quả
+
+```{r}
+ggplot(data_FEV_less_10,aes(x = age, y = FEV)) +
+  geom_point(color = "blue", size = 2) +
+  geom_smooth(method = "lm",
+              se = TRUE,
+              color = "red") +
+  labs(title = "Simple Linear Regression: FEV ~ Age",
+       x = "Age",
+       y = "FEV") +
+  theme_minimal()
+```
+
+- Biểu đồ phân tán thể hiện mối quan hệ giữa tuổi (Age) và dung tích thở ra tối đa (FEV). Các điểm dữ liệu có xu hướng phân bố theo chiều tăng dần từ trái sang phải, cho thấy khi tuổi tăng thì FEV cũng tăng theo.
+
+- Đường hồi quy tuyến tính màu đỏ có độ dốc dương, chứng tỏ tồn tại mối quan hệ tuyến tính cùng chiều giữa Age và FEV. Điều này phù hợp với thực tế vì trẻ lớn tuổi hơn thường có dung tích phổi lớn hơn.
+
+- Mặc dù các điểm dữ liệu không nằm hoàn toàn trên đường hồi quy, phần lớn các điểm tập trung quanh đường này. Do đó mô hình hồi quy tuyến tính đơn có khả năng mô tả khá tốt mối quan hệ giữa Age và FEV và có thể sử dụng để dự đoán FEV dựa trên tuổi.
+
+# 7. Với data_FEV_less_10
+
+## a. Thực hiện Multiple Linear Regression để dự đoán FEV từ age và ht
+
+```{r}
+model2 <- lm(FEV~age+ht, data=data_FEV_less_10)
+summary(model2)
+```
+
+## b. Cho age và ht lần lượt là: age=[5,6,7,8,9], ht=[49.5,55,57,60,62]. Hãy cho biết FEV lần lượt là bao nhiêu
+
+```{r}
+new_data2 <- data.frame(
+  age=c(5,6,7,8,9),
+  ht=c(49.5,55,57,60,62)
+)
+predict(model2, new_data2)
+```
+
+## c. Trực quan hóa kết quả
+
+```{r}
+ggplot(data_FEV_less_10,
+       aes(x = age, y = FEV)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm",
+              color = "red",
+              se = TRUE) +
+  theme_minimal() +
+  labs(title = "Multiple Linear Regression",
+       x = "Age",
+       y = "FEV")
+```
+
+Nhận xét 
+
+- Biểu đồ cho thấy FEV có xu hướng tăng theo tuổi (Age). Đường hồi quy màu đỏ có độ dốc dương, chứng tỏ tồn tại mối quan hệ cùng chiều giữa Age và FEV. Phần lớn các điểm dữ liệu phân bố xung quanh đường hồi quy, cho thấy mô hình có khả năng mô tả tương đối tốt xu hướng của dữ liệu.
+
+- Đồng thời, độ phân tán của FEV ở các nhóm tuổi lớn hơn có xu hướng tăng, cho thấy ngoài Age còn có những yếu tố khác ảnh hưởng đến FEV. Trong mô hình hồi quy tuyến tính bội, biến chiều cao (ht) được bổ sung nhằm cải thiện khả năng dự đoán FEV.
+
+Câu 2
+
+# 1. Đọc dữ liệu và gán cho biến data
+
+```{r}
+data2 <- read.csv("mushrooms.csv", stringsAsFactors = TRUE)
+```
+
+# 2. Xem thông tin data : head(), số dòng, số cột, summary...
+
+```{r}
+head(data2)
+nrow(data2)
+ncol(data2)
+summary(data2)
+```
+
+# 3. Tiền xử lý dữ liệu
+
+```{r}
+sum(is.na(data2))
+sum(duplicated(data2))
+```
+
+Không có giá trị bất thường để xử lý
+
+# 4.Tạo train và test từ dữ liệu data
+
+```{r}
+data2$veil.type <- NULL
+data2[] <- lapply(data2, as.factor)
+
+set.seed(123)
+
+index <- createDataPartition(
+  data2$class,
+  p = 0.8,
+  list = FALSE
+)
+
+train_data <- data2[index, ]
+test_data  <- data2[-index, ]
+
+dim(train_data)
+dim(test_data)
+```
+
+# 5. Xây dựng model với train
+
+```{r}
+
+# Logistic Regression
+
+model_logit <- glm(
+  class ~ .,
+  data = train_data,
+  family = binomial
+)
+
+# Decision Tree
+
+model_tree <- rpart(
+  class ~ .,
+  data = train_data,
+  method = "class"
+)
+
+```
+
+# 6. In summary của model
+
+```{r}
+summary(model_logit)
+summary(model_tree)
+```
+
+# 7. Dự đoán y_pred từ test => so sánh với y_test
+
+```{r}
+# Logistic Regression
+pred_prob <- predict(
+  model_logit,
+  newdata = test_data,
+  type = "response"
+)
+
+pred_logit <- ifelse(
+  pred_prob > 0.5,
+  "p",
+  "e"
+)
+
+pred_logit <- as.factor(pred_logit)
+
+head(data.frame(
+  Actual = test_data$class,
+  Predict = pred_logit
+))
+# Decision Tree
+pred_tree <- predict(
+  model_tree,
+  newdata = test_data,
+  type = "class"
+)
+
+head(data.frame(
+  Actual = test_data$class,
+  Predict = pred_tree
+))
+```
+
+Mô hình được đánh giá trên tập kiểm tra bằng cách so sánh giá trị FEV dự đoán với giá trị FEV thực tế. Các chỉ số RMSE và MAE được sử dụng để đo sai số dự đoán, trong khi R² phản ánh mức độ giải thích của mô hình đối với dữ liệu kiểm tra. RMSE và MAE càng nhỏ, R² càng gần 1 thì mô hình càng tốt.
+
+# 8. Đánh giá model
+
+```{r}
+# Logistic Regression
+cm_logit <- confusionMatrix(
+  pred_logit,
+  test_data$class
+)
+
+cm_logit
+```
+
+- Độ chính xác tuyệt đối: Mô hình đạt độ chính xác Accuracy = 1 (100%), phân loại đúng hoàn toàn tất cả các mẫu trong tập dữ liệu đánh giá mà không xảy ra bất kỳ trường hợp nhầm lẫn nào (Số ca đoán sai ở cả 2 lớp e và p đều bằng 0).
+
+- Hiệu suất phân loại hoàn hảo: Cả hai chỉ số Sensitivity (Độ nhạy) và Specificity (Độ đặc hiệu) đều đạt mức tối đa 1.0000. Điều này chứng tỏ mô hình có khả năng nhận diện chính xác tuyệt đối cho cả lớp e và lớp p.
+
+- Độ tin cậy cao: Chỉ số Kappa = 1 khẳng định kết quả phân loại hoàn toàn dựa trên quy luật học được của mô hình chứ không phải do yếu tố ngẫu nhiên hay may rủi.
+
+- Kết quả đạt 100% ở mọi chỉ số là một dấu hiệu của hiện tượng Overfitting (Quá khớp/Học vẹt) hoặc Data Leakage (Rò rỉ dữ liệu). Mô hình này cần được kiểm tra lại trên một tập dữ liệu thử nghiệm độc lập (Test set) trước khi đưa vào ứng dụng thực tế để đảm bảo tính khách quan.
+
+```{r}
+# Decision Tree
+cm_logit <- confusionMatrix(
+  pred_logit,
+  test_data$class
+)
+
+cm_logit
+```
+
+# 9. Trực quan hóa model
+
+## Decision Tree
+
+```{r}
+rpart.plot(
+  model_tree,
+  type = 4,
+  extra = 104,
+  fallen.leaves = TRUE
+)
+```
+
+- Từ cây quyết định có thể thấy thuộc tính odor (mùi nấm) là thuộc tính quan trọng nhất trong việc phân loại nấm. Mô hình chọn odor làm nút phân chia đầu tiên vì thuộc tính này giúp tách hai nhóm nấm ăn được và nấm độc hiệu quả nhất.
+
+- Với nhánh có odor = a,l,n (almond, anise, none), mô hình dự đoán phần lớn là nấm ăn được (e) với độ chính xác khoảng 97%.
+Trong nhóm này, thuộc tính tiếp theo được sử dụng là spore.print.color để phân loại chính xác hơn.
+Với các giá trị mùi như c,f,m,p,s,y (creosote, foul, musty, pungent, spicy, fishy), mô hình dự đoán nấm độc (p) với độ chính xác gần 100%.
+
+-  Điều này cho thấy odor là một đặc trưng rất có giá trị trong việc nhận biết nấm độc, giúp Decision Tree đưa ra quyết định nhanh và dễ giải thích.
+
+## Logistic Regression
+
+```{r}
+coef_df <- data.frame(
+  Variable = names(coef(model_logit)),
+  Coefficient = coef(model_logit)
+)
+coef_df <- coef_df[-1, ]
+ggplot(coef_df,
+       aes(x = reorder(Variable, Coefficient),
+           y = Coefficient)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Logistic Regression Coefficients",
+    x = "Variables",
+    y = "Coefficient"
+  )
+```
+
+- Biểu đồ hệ số của Logistic Regression cho thấy mô hình đã xác định mức độ ảnh hưởng của từng thuộc tính đến kết quả phân loại nấm. 
+
+- Các biến có hệ số dương lớn làm tăng khả năng dự đoán mẫu nấm là nấm độc (p), trong khi các biến có hệ số âm lớn làm tăng khả năng dự đoán mẫu là nấm ăn được (e). 
+
+- Một số thuộc tính có ảnh hưởng đáng kể đến quá trình dự đoán như odor, stalk-color, spore-print-color và các đặc trưng liên quan đến gill. 
+
+-  Tuy nhiên, do bộ dữ liệu Mushroom chứa nhiều thuộc tính dạng phân loại nên Logistic Regression cần chuyển đổi thành nhiều biến giả (dummy variables), làm số lượng hệ số tăng lên nhiều và khiến biểu đồ khó quan sát hơn. Điều này cho thấy Logistic Regression vẫn có khả năng phân loại tốt nhưng khả năng giải thích trực quan không bằng Decision Tree.

@@ -1,0 +1,430 @@
+---
+title: "Lab 8 - Suy luận thống kê"
+author: "Nguyễn Thị Kiều Trang - 24133064"
+date: "8/6/2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(infer)
+```
+
+## Giới thiệu
+
+Một nhóm nghiên cứu điều tra tốc độ đánh máy bằng tiếng Anh bằng hai hệ thống máy tính:
+
+- **NO HELP**: Không có trợ giúp sửa lỗi chính tả tự động được cung cấp bởi hệ thống.
+
+- **AUTO-CORRECTION**: Hệ thống liên tục cố gắng tự động sửa lỗi chính tả.
+
+Các nhà nghiên cứu thử nghiệm hai bàn phím khác nhau: (i) bàn phím **QWERTY** và (ii) **AZERTY**.
+
+Các nhà nghiên cứu đưa ra giả thuyết $H_1$ rằng nhập văn bản với tính năng sửa lỗi tự động (**AUTO-CORRECTION**) nhanh hơn so với nhập liệu không có trợ giúp (**NO HELP**). Họ cũng đưa ra giả thuyết $H_2$ rằng gõ bằng bàn phím **AZERTY** nhanh hơn gõ bằng bàn phím **QWERTY**.
+
+Để kiểm tra hai giả thuyết này ($H_1$ và $H_2$), nhóm nghiên cứu tiến hành một cuộc thử nghiệm với 32 người nói tiếng Anh tham gia. Những người tham gia được chia thành hai nhóm độc lập, mỗi nhóm có 16 người. Ở nhóm đầu tiên ($G_1$), người tham gia sử dụng bàn phím **AZERTY**. Trong khi đó, ở nhóm thứ hai ($G_2$), người tham gia sử dụng bàn phím **QWERTY**. Tất cả 32 người tham gia thử nghiệm lần lượt cả hệ thống không có trợ giúp (**NO HELP**) và sửa lỗi tự động (**AUTO-CORRECTION**).
+
+Để giảm sự sai lệch do tác động của thứ tự (do mệt mỏi hoặc tốn thời gian học), các nhà nghiên cứu thay đổi thứ tự trình bày của hai hệ thống như sau. Đối với mỗi loại bàn phím, đầu tiên, một nửa số người tham gia sử dụng hệ thống không có trợ giúp (**NO HELP**) và sau đó là hệ thống sửa lỗi tự động (**AUTO-CORRECTION**). Một nửa số người tham gia còn lại sử dụng chúng theo thứ tự ngược lại.
+
+Để đánh giá hiệu suất đánh máy, các nhà nghiên cứu đo số từ gõ được trung bình mỗi phút (WPM).
+
+
+## Bước 1. Thu thập dữ liệu
+Giả sử các nhà nghiên cứu đã hoàn thành thí nghiệm và đã thu thập được kết quả. Ở đây, chúng ta mô phỏng quá trình tạo dữ liệu bằng cách lấy mẫu ngẫu nhiên từ một số quần thể cố định. Để tạo dữ liệu, bạn sẽ sử dụng đoạn mã bên dưới. Bạn chỉ cần chạy đoạn mã và sau đó sử dụng biến `data` làm tập dữ liệu của mình. Lưu ý rằng mỗi bạn sẽ tạo một tập dữ liệu khác nhau tùy vào mã số sinh viên (MSSV). Bạn cần thay đổi giá trị của biến `mssv` cho đúng với MSSV của bạn ở đoạn mã bên dưới. Kết luận của các phân tích của mỗi bạn có thể khác nhau.
+
+Dữ liệu chứa năm cột với thông tin sau: (i) mã số người tham gia (`id`), (ii) loại bàn phím (`keyboard`: qwerty hoặc azerty), (iii) hệ thống (`system`: nohelp hoặc autocorrection), (iv) thứ tự trình bày của hệ thống (`systemorder`: 1 hoặc 2) và (v) số từ được gõ trung bình mỗi phút (`wpm`). Vì bạn không được yêu cầu phân tích ảnh hưởng của thứ tự trình bày của hệ thống, bạn có thể bỏ qua cột thứ 4 (thứ tự hệ thống).
+```{r}
+library(tidyverse)
+library(openintro)
+library(infer)
+```
+```{r}
+mssv =20133113 # 'your student code'
+set.seed(mssv)
+
+# azerty group
+m1.no <- 29.4 # No Help
+m1.yes <- 36.5 # Auto-Correction
+
+# qwerty group
+m2.no <- 28.1 # No Help
+m2.yes <- 37.2 # Auto-Correction
+
+# common standard deviation
+sd <- 8
+
+# within-participant variability
+dwpm.1 <- rnorm(8, 0, 5)
+dwpm.2 <- rnorm(8, 0, 5)
+
+# Datafame for the azerty group
+df.1 <- data.frame(
+  participant = 1:8, 
+  keyboard = "azerty", 
+  system = "nohelp", systemorder = 1, 
+  wmp = rnorm(8, m1.no, sd) + dwpm.1
+)
+
+df.2 <- data.frame(
+  participant = 1:8, 
+  keyboard = "azerty", 
+  system = "autocorrection", 
+  systemorder = 2, 
+  wmp = rnorm(8, m1.yes, sd) + dwpm.1
+)
+
+df.3 <- data.frame(
+  participant = 9:16, 
+  keyboard = "azerty", 
+  system = "autocorrection", 
+  systemorder = 1, 
+  wmp = rnorm(8, m1.yes, sd) + dwpm.1
+)
+
+df.4 <- data.frame(
+  participant = 9:16, 
+  keyboard = "azerty", 
+  system = "nohelp", 
+  systemorder = 2, 
+  wmp = rnorm(8, m1.no, sd) + dwpm.1
+)
+
+# Data fame for the querty group
+df.5 <- data.frame(
+  participant = 17:24, 
+  keyboard = "qwerty", 
+  system = "nohelp", 
+  systemorder = 1, 
+  wmp = rnorm(8, m2.no, sd) + dwpm.2
+)
+
+df.6 <- data.frame(
+  participant = 17:24, 
+  keyboard = "qwerty", 
+  system = "autocorrection", 
+  systemorder = 2, 
+  wmp = rnorm(8, m2.yes, sd) + dwpm.2
+)
+
+df.7 <- data.frame(
+  participant = 25:32, 
+  keyboard = "qwerty", 
+  system = "autocorrection", 
+  systemorder = 1, 
+  wmp = rnorm(8, m2.yes, sd) + dwpm.2
+)
+
+df.8 <- data.frame(
+  participant = 25:32, 
+  keyboard = "qwerty", 
+  system = "nohelp", 
+  systemorder = 2, 
+  wmp = rnorm(8, m2.no, sd) + dwpm.2
+)
+
+# Combine the data from the two group
+data <- rbind(df.1, df.2, df.3, df.4, df.5, df.6, df.7, df.8)
+
+# Keep only one decimal digit
+data$wmp <- round(data$wmp, digits = 1)
+
+# Sort the data by participant
+data <- data[order(data$participant),]
+
+# Write the data into a file
+write.csv(data, 
+          file = paste0("dataset_", mssv, ".csv"), 
+          row.names=FALSE)
+
+data
+```
+
+
+## Bước 2. Thống kê mô tả
+
+Viết mã để tính toán thống kê mô tả cho dữ liệu thử nghiệm của bạn. Thống kê mô tả sẽ bao gồm **trung bình (mean)**, **trung vị (median)** và **độ lệch chuẩn (standard deviation)** (i) đối với từng loại bàn phím riêng lẻ (AZERTY và QWERTY) và (ii) đối với từng hệ thống (NO HELP và AUTO-CORRECTION).
+
+### Thống kê theo loại bàn phím
+
+```{r, echo=TRUE}
+# begin your code
+keyboard_stats <- data %>%
+  group_by(keyboard)%>%
+  summarise(
+    mean_wmp = mean(wmp),
+    median_wmp = median(wmp),
+    sd_wmp=sd(wmp)
+  )
+keyboard_stats
+# end your code
+```
+
+### Thống kê theo hệ thống
+
+```{r}
+system_stats <- data %>%
+  group_by(system)%>%
+  summarise(
+    mean_wmp=mean(wmp),
+    median_wmp=mean(wmp),
+    sd_wmp=sd(wmp)
+  )
+system_stats 
+```
+
+### Nhận xét
+
+- Giá trị trung bình và trung vị cho biết tốc độ gõ điển hình của từng nhóm.
+
+- Độ lệch chuẩn phản ánh mức độ biến động tốc độ gõ giữa các người tham gia.
+
+- Nếu nhóm autocorrection có mean lớn hơn nhóm nohelp, điều đó cho thấy tính năng tự động sửa lỗi có thể giúp tăng tốc độ gõ.
+
+- Nếu nhóm azerty có mean lớn hơn nhóm qwerty, điều đó cho thấy bàn phím AZERTY có thể mang lại hiệu suất tốt hơn trong mẫu dữ liệu này.
+
+## Bước 3. Vẽ biểu đồ
+
+Tạo biểu đồ hộp (boxplot) để tóm tắt bằng đồ thị các phân bố của `wpm` (i) cho hai loại bàn phím và (ii) cho hai hệ thống. Đồng thời tạo ra đồ `qqplot` để đánh giá trực quan mức độ mà các mẫu của bạn sai lệch so với phân phối chuẩn (Normal distribution). Bạn quan sát thấy gì?
+
+```{r}
+# begin your code
+
+ggplot(data, aes(x=keyboard, y=wmp))+
+  geom_boxplot()
+ggplot(data, aes(x=system, y=wmp))+
+  geom_boxplot()
+
+
+# end your code
+```
+
+### Nhận xét
+
+1. Ta thấy trung vị của wmp ở bàng phím querty thấp hơn ở bàn phím azerty.
+
+2. Ta thấy trung vị của wmp ở hệ thống no help thấp hơn hệ thống autocorrextion, ở hệ thống nohelp wmp có giá trị ngoại lệ.
+
+
+## Bước 4. Khoảng tin cậy theo công thức
+
+Giả sử các quần thể có phân bố chuẩn. Viết mã để ước tính `wpm` trung bình cho mỗi hệ thống, cũng như sự khác biệt `wpm` trung bình. Sử dụng khoảng tin cậy 95\% để ước tính các giá trị trung bình đó. Mã cần bao gồm phần tính toán và cả phần vẽ đồ thị các khoảng tin cậy. Kết luận của bạn là gì? Các kết quả có ủng hộ giả thuyết đầu tiên ($H_1$) của các nhà nghiên cứu không?
+
+Tương tự, hãy viết một đoạn mã ước tính `wpm` trung bình cho từng loại bàn phím, cũng như sự khác biệt `wpm` trung bình (độc lập với việc có sử dụng tính năng tự động sửa lỗi hay không). Một lần nữa, hãy sử dụng khoảng tin cậy 95% để ước tính các trung bình đó. Mã cần bao gồm cả phần tính toán và phần vẽ đồ thị các khoảng tin cậy. Kết luận của bạn bây giờ là gì? Các kết quả có ủng hộ giả thuyết thứ hai ($H_2$) của các nhà nghiên cứu không?
+
+### CI theo hệ thống
+
+```{r}
+# begin your code
+ci_system <- data %>%
+  group_by(system)%>%
+  summarise(
+    mean_wmp = mean(wmp),
+    sd_wmp = sd(wmp),
+    n=n(),
+    se=sd_wmp/sqrt(n),
+    t_value = qt(0.975, df=n-1),
+    lower = mean_wmp - t_value*se,
+    upper = mean_wmp + t_value*se
+    )
+ci_system
+
+```
+
+#### CI cho hiệu trung bình
+
+```{r}
+t_system <- t.test(
+  wmp~system,
+  data=data
+)
+t_system
+ggplot(ci_system, aes(x=system, y=mean_wmp))+
+  geom_point(size=3)+
+  geom_errorbar(aes(ymin=lower, ymax=upper), width=0.2)
+```
+
+
+### Nhận xét và kết luận
+
+Qua biểu đồ và kết quả kiểm định Welch Two Sample t-test, ta thấy có sự khác biệt rõ rệt và có ý nghĩa thống kê về kết quả mean_wmp giữa hai hệ thống.Nhóm autocorrection (Tự động sửa lỗi): Có điểm trung bình đạt 39.98, nằm ở mức cao trên biểu đồ.Nhóm nohelp (Không trợ giúp): Có điểm trung bình thấp hơn hẳn, chỉ đạt 32.48. 
+
+Sự chênh lệch này là hoàn toàn thực tế và có ý nghĩa thống kê chứ không phải do ngẫu nhiên, vì giá trị p-value = 0.0058 (nhỏ hơn rất nhiều so với mức ý nghĩa tiêu chuẩn 0.05). Khoảng tin cậy 95% cho sự chênh lệch này dao động từ 2.27 đến 12.71(không chứa số 0).
+
+Kết luận: Hệ thống autocorrection giúp cải thiện và nâng cao hiệu suất wmp một cách rõ rệt so với khi không nhận được sự trợ giúp (nohelp).
+
+## Bước 5. Khoảng tin cậy bootstrap
+Sử dụng khoảng tin cậy bootstrap với mức tin cậy 95\% để ước tính `wpm` trung bình cho mỗi hệ thống, cũng như sự khác biệt `wpm` trung bình. Mã cần bao gồm cả phần vẽ đồ thị các khoảng tin cậy. Kết luận của bạn là gì? Các kết quả có ủng hộ giả thuyết đầu tiên ($H_1$) của các nhà nghiên cứu không?
+
+Tương tự, hãy sử dụng khoảng tin cậy bootstrap với mức tin cậy 95\% để ước tính `wpm` trung bình cho từng loại bàn phím, cũng như sự khác biệt `wpm` trung bình (độc lập với việc có sử dụng tính năng tự động sửa lỗi hay không). Mã cần bao gồm cả phần vẽ đồ thị các khoảng tin cậy. Kết luận của bạn bây giờ là gì? Các kết quả có ủng hộ giả thuyết thứ hai ($H_2$) của các nhà nghiên cứu không?
+
+### Bootstrap CI theo hệ thống
+
+```{r}
+# begin your code
+set.seed(123)
+B <- 1000
+# 1. Bootstrap CI mean cho từng system
+
+boot_system_mean <- data %>%
+  specify(wmp~system)%>%
+  generate(reps=1000, type="bootstrap") %>%
+  group_by(replicate, system) %>%
+  summarise(mean_wmp=mean(wmp), .groups="drop")
+ci_boot_system <- boot_system_mean %>%
+  group_by(system)%>%
+  summarise(
+    lower = quantile(mean_wmp, 0.025),
+    mean=mean(mean_wmp),
+    upper=quantile(mean_wmp, 0.975),
+    .group="drop"
+  )
+ci_boot_system
+# 2. Bootstrap CI cho hiệu: autocorrection - nohelp
+boot_nohelp <- replicate(B, {
+  mean(sample(data$wmp[data$system == "nohelp"], replace = TRUE))
+})
+
+boot_auto <- replicate(B, {
+  mean(sample(data$wmp[data$system == "autocorrection"], replace = TRUE))
+})
+
+boot_diff_system <- boot_auto - boot_nohelp
+
+ci_boot_system <- data.frame(
+  system = c("nohelp", "autocorrection"),
+  mean = c(mean(boot_nohelp), mean(boot_auto)),
+  lower = c(
+    quantile(boot_nohelp, 0.025),
+    quantile(boot_auto, 0.025)
+  ),
+  upper = c(
+    quantile(boot_nohelp, 0.975),
+    quantile(boot_auto, 0.975)
+  )
+)
+
+ci_boot_system
+
+ci_boot_system_diff <- data.frame(
+  comparison = "autocorrection - nohelp",
+  mean_diff = mean(boot_diff_system),
+  lower = quantile(boot_diff_system, 0.025),
+  upper = quantile(boot_diff_system, 0.975)
+)
+
+ci_boot_system_diff
+
+# 3. Vẽ CI mean theo system
+
+ggplot(ci_boot_system, aes(x = system, y = mean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+  labs(
+    title = "Bootstrap 95% CI of Mean WPM by System",
+    x = "System",
+    y = "Mean WPM"
+  ) 
+# end your code
+```
+
+### Bootstrap theo keyboard
+
+```{r}
+
+# 1. Bootstrap CI mean cho từng keyboard
+
+boot_azerty <- replicate(B, {
+  mean(sample(data$wmp[data$keyboard == "azerty"], replace = TRUE))
+})
+boot_qwerty <- replicate(B, {
+  mean(sample(data$wmp[data$keyboard == "qwerty"], replace = TRUE))
+})
+boot_diff_keyboard <- boot_azerty - boot_qwerty
+
+ci_boot_keyboard <- data.frame(
+  keyboard = c("azerty", "qwerty"),
+  mean = c(mean(boot_azerty), mean(boot_qwerty)),
+  lower = c(
+    quantile(boot_azerty, 0.025),
+    quantile(boot_qwerty, 0.025)
+  ),
+  upper = c(
+    quantile(boot_azerty, 0.975),
+    quantile(boot_qwerty, 0.975)
+  )
+)
+ci_boot_keyboard
+
+# 2. Bootstrap CI cho hiệu: azerty - qwerty
+
+ci_boot_keyboard_diff <- data.frame(
+  comparison = "azerty - qwerty",
+  mean_diff = mean(boot_diff_keyboard),
+  lower = quantile(boot_diff_keyboard, 0.025),
+  upper = quantile(boot_diff_keyboard, 0.975)
+)
+ci_boot_keyboard_diff
+
+# 3. Vẽ CI mean theo keyboard
+
+ggplot(ci_boot_keyboard, aes(x = keyboard, y = mean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+  labs(
+    title = "Bootstrap 95% CI of Mean WPM by Keyboard",
+    x = "Keyboard",
+    y = "Mean WPM"
+  )
+```
+
+### Nhận xét và kết luận
+
+1. Khoảng tin cậy bootstrap 95% của hiệu trung bình giữa hệ thống autocorrection và nohelp không chứa giá trị 0 và nằm hoàn toàn phía trên 0. Điều này cho thấy tốc độ gõ trung bình khi sử dụng tính năng tự động sửa lỗi cao hơn so với khi không có trợ giúp. Hiệu trung bình ước lượng khoảng 7.55 từ/phút. Do đó, kết quả bootstrap ủng hộ giả thuyết H₁ của các nhà nghiên cứu rằng AUTO-CORRECTION giúp tăng tốc độ nhập liệu.
+
+2. Khoảng tin cậy bootstrap 95% của hiệu trung bình giữa hệ thống autocorrection và nohelp không chứa giá trị 0 và nằm hoàn toàn phía trên 0. Điều này cho thấy tốc độ gõ trung bình khi sử dụng tính năng tự động sửa lỗi cao hơn so với khi không có trợ giúp. Hiệu trung bình ước lượng khoảng 7.55 từ/phút. Do đó, kết quả bootstrap ủng hộ giả thuyết H₁ của các nhà nghiên cứu rằng AUTO-CORRECTION giúp tăng tốc độ nhập liệu.
+
+## Bước 6. Kiểm định ý nghĩa thống kê
+Viết một đoạn mã để tiến hành các kiểm định ý nghĩa thống kê thích hợp để kiểm tra hai giả thuyết ($H_1$ và $H_2$). Kết luận của bạn là gì? Kết quả của các phép kiểm định ý nghĩa thống kê có phù hợp với khoảng tin cậy mà bạn đã xây dựng cho Bước 4 không?
+
+### H1: AUTO-CORRECTION > NO HELP
+
+```{r}
+# begin your code
+system_wide <- data %>%
+  select(participant,system,wmp)%>%
+  pivot_wider(
+    names_from=system,
+    values_from=wmp
+  )
+system_wide 
+test_H1 <- t.test(
+  system_wide$autocorrection,
+  system_wide$nohelp,
+  paired=TRUE,
+  alternative="greater"
+)
+test_H1
+# end your code
+```
+
+### H2: AZERTY > QWERTY
+
+```{r}
+test_H2 <- t.test(
+  wmp~keyboard,
+  data=data,
+  alternative = "greater"
+)
+test_H2
+```
+
+### Nhận xét và kết luận
+
+1. Giá trị p-value = 0.002277 < 0.05. Bác bỏ giả thuyết không H₀.
+Hiệu trung bình dương khoảng 7.49 từ/phút cho thấy tốc độ gõ khi sử dụng AUTO-CORRECTION cao hơn NO HELP. Khoảng tin cậy 95% cho hiệu trung bình có cận dưới bằng 3.34 (> 0), cho thấy sự khác biệt là có ý nghĩa thống kê. Có đủ bằng chứng thống kê ở mức ý nghĩa 5% để kết luận rằng hệ thống AUTO-CORRECTION giúp người dùng gõ nhanh hơn hệ thống NO HELP. Do đó, kết quả kiểm định ủng hộ giả thuyết H₁ của các nhà nghiên cứu.
+
+2. Giá trị p-value = 0.8767 > 0.05. Không đủ cơ sở để bác bỏ giả thuyết không H₀.Tốc độ gõ trung bình của nhóm QWERTY (37.83 từ/phút) còn cao hơn nhóm AZERTY (34.63 từ/phút).Khoảng tin cậy chứa giá trị 0 nên sự khác biệt không có ý nghĩa thống kê.Không có đủ bằng chứng thống kê để kết luận rằng bàn phím AZERTY cho tốc độ gõ nhanh hơn bàn phím QWERTY. Do đó, kết quả kiểm định không ủng hộ giả thuyết H₂ của các nhà nghiên cứu. 
+

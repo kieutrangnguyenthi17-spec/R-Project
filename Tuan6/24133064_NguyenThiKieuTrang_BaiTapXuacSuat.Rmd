@@ -1,0 +1,158 @@
+---
+title: "24133064_NguyenThiKieuTrang_BaiTapXuacSuat"
+output: html_document
+date: "2026-06-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Yêu cầu chung
+1. Ghi rõ giả định của bài toán.
+
+2. Xác định biến cố, biến ngẫu nhiên hoặc tham số cần tính.
+
+3. Viết công thức xác suất hoặc công thức thống kê phù hợp.
+
+4. Tính kết quả bằng tay hoặc bằng ngôn ngữ R.
+
+5. Diễn giải kết quả bằng lời, tránh chỉ nộp kết quả số.
+
+Yêu cầu nộp bài: Sinh viên nên nộp file .R hoặc .Rmd, trong đó mỗi bài có phần giả định, công thức, code và kết luận.
+
+# A. Bài toán xác suất 
+
+## Bài 1. Tung đồng xu 3 lần
+
+## Tung một đồng xu cân bằng 3 lần.
+
+## Yêu cầu:
+
+### a. Liệt kê không gian mẫu.
+
+```{r}
+coin <-c("N","S")
+sample_space <- expand.grid(
+  Lan1 = coin,
+  Lan2 = coin,
+  Lan3 = coin
+)
+result <- apply(sample_space,1,paste0, collapse="")
+result 
+```
+
+### b. Gọi A là biến cố “có đúng 2 mặt ngửa”. Tính P(A).
+
+```{r}
+A <- result[
+  sapply(strsplit(result,""),
+                  function(x) sum(x == "N")==2)]
+P_A <- length(A)/ length(result)
+P_A
+```
+
+### c. Gọi B là biến cố “lần tung đầu tiên là mặt ngửa”. Tính P(B).
+
+```{r}
+B <- result[substr(result, 1, 1) == "N"]
+
+B
+
+P_B <- length(B) / length(result)
+
+P_B
+```
+
+d. Tính P(A ∩ B) và P(A ∪ B).
+
+```{r}
+A_inter_B <- intersect(A, B)
+P_inter <- length(A_inter_B) / 8
+
+A_union_B <- union(A, B)
+
+P_union <- length(A_union_B) / 8
+
+P_inter
+P_union
+```
+
+e. Kiểm tra A và B có độc lập không.
+
+```{r}
+
+```
+
+## Bài 6. Xét nghiệm bệnh
+
+## Một bệnh hiếm có tỷ lệ mắc trong dân số là 0.1%. Xét nghiệm có độ nhạy P(dương tính | mắc bệnh) = 0.98 và tỷ lệ dương tính giả P(dương tính | không mắc bệnh) = 0.03.
+
+## Yêu cầu:
+
+### a. Tính xác suất một người có kết quả dương tính.
+
+```{r}
+P_D <- 0.001  # xác suất mắc bệnh
+P_notD <- 1 - P_D # xác suất không mắc bệnh
+
+P_pos_given_D <- 0.98 # xác suất dương tính| mắc bệnh
+P_pos_given_notD <- 0.03 # xác suất dương tính| không mắc bệnh
+
+P_pos <- P_pos_given_D * P_D +
+         P_pos_given_notD * P_notD
+
+P_pos
+```
+
+Kết quả sẽ gồm là dương tính mắc bệnh(đã nằm trong 0.1% ) và dương tính không mắc bệnh( nằm trong số dân còn lại)
+
+### b. Tính xác suất người đó thật sự mắc bệnh nếu kết quả dương tính.
+
+```{r}
+P_D_given_pos <- (P_pos_given_D * P_D) / P_pos # xác suất mắc bệnh | dương tính
+
+P_D_given_pos
+```
+
+
+
+### c. Giải thích vì sao dù xét nghiệm khá chính xác, xác suất mắc bệnh sau khi dương tính vẫn có thể không quá cao.
+
+```{r}
+tong_nguoi <- 100000
+mac_benh <- tong_nguoi * 0.001
+duong_tinh_that <- mac_benh * 0.98
+khong_mac_benh <- tong_nguoi - mac_benh
+duong_tinh_gia <- khong_mac_benh * 0.03
+tong_duong_tinh <- duong_tinh_that + duong_tinh_gia
+P_D_given_pos <- duong_tinh_that / tong_duong_tinh
+
+cat("Người mắc bệnh:", mac_benh, "\n")
+cat("Dương tính thật:", duong_tinh_that, "\n")
+cat("Dương tính giả:", duong_tinh_gia, "\n")
+cat("Tổng dương tính:", tong_duong_tinh, "\n")
+cat("P(D|+) =", P_D_given_pos, "\n")
+```
+
+Mặc dù xét nghiệm có độ nhạy rất cao (98%), nhưng tỷ lệ mắc bệnh trong dân số chỉ là 0.1%. Điều này có nghĩa là số người không mắc bệnh lớn hơn rất nhiều so với số người mắc bệnh. Với tỷ lệ dương tính giả là 3%, số người không mắc bệnh nhưng vẫn nhận kết quả dương tính có thể lớn hơn số người thực sự mắc bệnh. Vì vậy, khi một người nhận kết quả dương tính, xác suất người đó thực sự mắc bệnh vẫn chỉ khoảng 3.17%.
+
+### d. Viết code R tính kết quả
+
+```{r}
+P_D <- 0.001
+P_notD <- 1 - P_D
+
+P_pos_given_D <- 0.98
+P_pos_given_notD <- 0.03
+
+P_pos <- P_pos_given_D * P_D +
+         P_pos_given_notD * P_notD
+
+P_pos
+
+P_D_given_pos <- (P_pos_given_D * P_D) / P_pos
+
+P_D_given_pos
+```

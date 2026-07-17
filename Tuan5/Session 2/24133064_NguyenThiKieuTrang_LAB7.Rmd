@@ -1,0 +1,394 @@
+---
+title: "24133064_NguyenThiKieuTrang_LAB7"
+output: html_document
+date: "2026-06-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DBI)
+library(RSQLite)
+
+```
+
+```{r}
+con <- dbConnect(
+  SQLite(),
+  dbname = "company.db"
+)
+
+dbListTables(con)
+dbListTables(con)
+```
+
+# 1. Liệt kê các nhân viên tham gia nhiều hơn một dự án và tổng số giờ làm việc trên từng người phụ thuộc của họ.
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    e.Fname,
+    e.Lname,
+    d.Dependent_name,
+    SUM(w.Hours) AS TotalHours
+FROM employee e
+JOIN works_on w
+    ON e.Ssn = w.Essn
+JOIN dependent d
+    ON e.Ssn = d.Essn
+GROUP BY
+    e.Ssn,
+    e.Fname,
+    e.Lname,
+    d.Dependent_name
+HAVING COUNT(DISTINCT w.Pno) > 1
+")
+```
+
+# 2. Liệt kê các nhân viên có mức lương cao hơn mức lương trung bình của phòng ban mình và đồng thời có ít nhất một người phụ thuộc.
+
+```{r}
+dbGetQuery(con,"
+SELECT e.Fname, e.Lname, e.Salary, e.Dno
+FROM employee e
+WHERE e.Salary > (
+    SELECT AVG(e2.Salary)
+    FROM employee e2
+    WHERE e2.Dno = e.Dno
+)
+AND EXISTS (
+    SELECT 1
+    FROM dependent d
+    WHERE d.Essn = e.Ssn
+)
+")
+```
+
+# 3. Liệt kê các phòng ban có ít nhất một dự án nhưng không có nhân viên nào làm việc trên tất cả các dự án của phòng ban đó.
+
+```{r}
+dbGetQuery(con,"
+SELECT d.Dname, d.Dnumber
+FROM department d
+WHERE EXISTS (
+    SELECT 1
+    FROM project p
+    WHERE p.Dnum = d.Dnumber
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM employee e
+    WHERE e.Dno = d.Dnumber
+      AND NOT EXISTS (
+          SELECT 1
+          FROM project p
+          WHERE p.Dnum = d.Dnumber
+            AND NOT EXISTS (
+                SELECT 1
+                FROM works_on w
+                WHERE w.Essn = e.Ssn
+                  AND w.Pno = p.Pnumber
+            )
+      )
+)
+")
+```
+
+# 4. Liệt kê các nhân viên làm việc trên mọi dự án thuộc phòng ban mà họ đang quản lý hoặc làm việc.
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT e.fname, e.lname
+FROM employee e
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM project p
+    WHERE p.dnum = e.dno
+      AND NOT EXISTS (
+          SELECT 1
+          FROM works_on w
+          WHERE w.essn = e.ssn
+            AND w.pno = p.pnumber
+      )
+)
+OR EXISTS (
+    SELECT 1
+    FROM department d
+    WHERE d.mgrssn = e.ssn
+      AND NOT EXISTS (
+          SELECT 1
+          FROM project p
+          WHERE p.dnum = d.dnumber
+            AND NOT EXISTS (
+                SELECT 1
+                FROM works_on w
+                WHERE w.essn = e.ssn
+                  AND w.pno = p.pnumber
+            )
+      )
+)
+")
+```
+
+# 5. Liệt kê các nhân viên có ít nhất một người phụ thuộc và tất cả người phụ thuộc đều có cùng giới tính với nhân viên đó.
+
+```{r}
+dbGetQuery(con,"
+SELECT e.Fname, e.Lname
+FROM employee e
+WHERE EXISTS (
+    SELECT 1
+    FROM dependent d
+    WHERE d.Essn = e.Ssn
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM dependent d
+    WHERE d.Essn = e.Ssn
+      AND d.Sex <> e.Sex
+)
+")
+```
+
+# 6. Liệt kê các nhân viên đang làm việc trên ít nhất một dự án ở Houston nhưng phòng ban của họ không có địa điểm nào ở Houston.
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT e.Fname, e.Lname
+FROM employee e
+JOIN works_on w ON e.Ssn = w.Essn
+JOIN project p ON w.Pno = p.Pnumber
+WHERE p.Plocation = 'Houston'
+AND NOT EXISTS (
+    SELECT 1
+    FROM dept_locations dl
+    WHERE dl.Dnumber = e.Dno
+      AND dl.Dlocation = 'Houston'
+)
+")
+```
+
+# 7. Liệt kê các dự án mà tổng số giờ làm việc của tất cả nhân viên lớn hơn 40 và có ít nhất 2 nhân viên tham gia.
+
+```{r}
+dbGetQuery(con,"
+SELECT p.Pname, p.Pnumber,
+       SUM(w.Hours) AS TotalHours,
+       COUNT(DISTINCT w.Essn) AS EmployeeNum
+FROM project p
+JOIN works_on w ON p.Pnumber = w.Pno
+GROUP BY p.Pnumber, p.Pname
+HAVING SUM(w.Hours) > 40
+   AND COUNT(DISTINCT w.Essn) >= 2
+")
+```
+
+# 8. Liệt kê các nhân viên có mức lương lớn hơn lương của người quản lý trực tiếp của họ.
+
+```{r}
+dbGetQuery(con,"
+SELECT e.Fname, e.Lname, e.Salary
+FROM employee e
+JOIN employee m ON e.superssn = m.Ssn
+WHERE e.Salary > m.Salary
+")
+```
+
+# 9. Liệt kê các phòng ban có số nhân viên nhiều hơn mức trung bình số nhân viên của tất cả các phòng ban.
+
+```{r}
+dbGetQuery(con,"
+SELECT d.Dname, d.Dnumber, COUNT(e.Ssn) AS EmployeeNum
+FROM department d
+JOIN employee e ON d.Dnumber = e.Dno
+GROUP BY d.Dnumber, d.Dname
+HAVING COUNT(e.Ssn) > (
+    SELECT AVG(emp_count)
+    FROM (
+        SELECT COUNT(*) AS emp_count
+        FROM employee
+        GROUP BY Dno
+    )
+)
+")
+```
+
+# 10. Liệt kê các nhân viên có cùng ngày sinh với ít nhất một người phụ thuộc của 
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT e.Fname, e.Lname, e.Bdate
+FROM employee e
+JOIN dependent d ON e.Ssn = d.Essn
+WHERE e.Bdate = d.Bdate
+")
+```
+
+# 11. Liệt kê các dự án mà mọi nhân viên trong phòng ban quản lý dự án đều tham gia.
+
+```{r}
+dbGetQuery(con,"
+SELECT p.Pname, p.Pnumber
+FROM project p
+JOIN department d ON p.Dnum = d.Dnumber
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM employee e
+    WHERE e.Dno = d.Dnumber
+      AND NOT EXISTS (
+          SELECT 1
+          FROM works_on w
+          WHERE w.Essn = e.Ssn
+            AND w.Pno = p.Pnumber
+      )
+)
+")
+```
+
+# 12. Liệt kê các nhân viên không tham gia bất kỳ dự án nào nhưng có người phụ thuộc.
+
+```{r}
+dbGetQuery(con,"
+SELECT e.Fname, e.Lname
+FROM employee e
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM works_on w
+    WHERE w.Essn = e.Ssn
+)
+AND EXISTS (
+    SELECT 1
+    FROM dependent d
+    WHERE d.Essn = e.Ssn
+)
+")
+```
+
+# 13. Liệt kê các dự án được làm bởi mọi nhân viên sống ở Houston.
+
+```{r}
+dbGetQuery(con,"
+SELECT p.Pname, p.Pnumber
+FROM project p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM employee e
+    WHERE e.Address LIKE '%Houston%'
+      AND NOT EXISTS (
+          SELECT 1
+          FROM works_on w
+          WHERE w.Essn = e.Ssn
+            AND w.Pno = p.Pnumber
+      )
+)
+")
+```
+
+# 14. Liệt kê các nhân viên đã làm việc trên ít nhất ba dự án khác nhau và có tổng số giờ lớn hơn 30.
+
+```{r}
+dbGetQuery(con,"
+SELECT e.Fname, e.Lname,
+       COUNT(DISTINCT w.Pno) AS ProjectNum,
+       SUM(w.Hours) AS TotalHours
+FROM employee e
+JOIN works_on w ON e.Ssn = w.Essn
+GROUP BY e.Ssn, e.Fname, e.Lname
+HAVING COUNT(DISTINCT w.Pno) >= 3
+   AND SUM(w.Hours) > 30
+")
+```
+
+# 15. Liệt kê các phòng ban có nhiều hơn một địa điểm và có ít nhất một nhân viên có mức lương trên 40,000.
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT d.Dname, d.Dnumber
+FROM department d
+WHERE (
+    SELECT COUNT(*)
+    FROM dept_locations dl
+    WHERE dl.Dnumber = d.Dnumber
+) > 1
+AND EXISTS (
+    SELECT 1
+    FROM employee e
+    WHERE e.Dno = d.Dnumber
+      AND e.Salary > 40000
+)
+")
+```
+
+# 16. Liệt kê các nhân viên mà tên người phụ thuộc trùng với tên dự án họ từng làm việc.
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT e.Fname, e.Lname, d.Dependent_name, p.Pname
+FROM employee e
+JOIN dependent d ON e.Ssn = d.Essn
+JOIN works_on w ON e.Ssn = w.Essn
+JOIN project p ON w.Pno = p.Pnumber
+WHERE d.Dependent_name = p.Pname
+")
+```
+
+# 17. Liệt kê các dự án có số giờ trung bình trên mỗi nhân viên lớn hơn 15 giờ.
+
+```{r}
+dbGetQuery(con,"
+SELECT p.Pname, p.Pnumber,
+       AVG(w.Hours) AS AvgHours
+FROM project p
+JOIN works_on w ON p.Pnumber = w.Pno
+GROUP BY p.Pnumber, p.Pname
+HAVING AVG(w.Hours) > 15
+")
+```
+
+# 18. Liệt kê các nhân viên có ít nhất một người phụ thuộc và làm việc trên tất cả các dự án của phòng ban mình.
+
+```{r}
+dbGetQuery(con,"
+SELECT e.Fname, e.Lname
+FROM employee e
+WHERE EXISTS (
+    SELECT 1
+    FROM dependent d
+    WHERE d.Essn = e.Ssn
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM project p
+    WHERE p.Dnum = e.Dno
+      AND NOT EXISTS (
+          SELECT 1
+          FROM works_on w
+          WHERE w.Essn = e.Ssn
+            AND w.Pno = p.Pnumber
+      )
+)
+")
+```
+
+# 19. Liệt kê các phòng ban mà không có người quản lý nào sinh trước năm 1955.
+
+```{r}
+dbGetQuery(con,"
+SELECT d.Dname, d.Dnumber
+FROM department d
+JOIN employee m ON mgrssn = m.Ssn
+WHERE m.Bdate >= '1955-01-01'
+")
+```
+
+# 20. Liệt kê các nhân viên vừa là quản lý phòng ban, vừa tham gia ít nhất một dự án thuộc chính phòng ban đó.
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT e.Fname, e.Lname, d.Dname
+FROM employee e
+JOIN department d ON d.mgrssn = e.Ssn
+JOIN works_on w ON e.Ssn = w.Essn
+JOIN project p ON w.Pno = p.Pnumber
+WHERE p.Dnum = d.Dnumber
+")
+```

@@ -1,0 +1,376 @@
+---
+title: "24133064_NguyenThiKieuTrang_Exercise2"
+output: html_document
+date: "2026-06-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Bài 1: Biến ngẫu nhiên
+
+## a. Tính 𝑃 (𝑆 = 4)? 
+
+𝑃 (𝑆 = 4) = 1 − (𝑃 (𝑆 = 1) + 𝑃 (𝑆 = 2) + 𝑃 (𝑆 = 3) + 𝑃 (𝑆= 5))
+
+```{r}
+P <- 1 - (0.1 + 0.13 + 0.21 + 0.15)
+P
+```
+
+## b. Tính 𝑃 (𝑆 ≤ 3)?
+
+𝑃 (𝑆 ≤ 3) = P(S=1)+P(S=2)+P(S=3)
+
+```{R}
+P <- 0.1 + 0.13 + 0.21
+P
+```
+
+## c. Tính 𝑚𝑒𝑎𝑛(𝑆)?
+
+```{r}
+s_c <- c(1,2,3,4,5)
+p_c <- c(0.1, 0.13, 0.21, 0.41, 0.15)
+Mean <- sum(s_c*p_c)
+Mean
+```
+
+## d. Tính variance(S)
+
+```{r}
+E_S2 <- sum((s_c^2)*p_c)
+V <- E_S2-Mean^2
+V
+```
+
+# Bài 2: Hàm mật độ và hàm phân bố tích lũy
+
+## a. Viết hàm 𝑓(𝑤) trong R như định nghĩa trên với input là numeric vector 𝑤 theo cách vector hóa (không dùng vòng lặp).
+
+```{r}
+f <- function(w){
+  ifelse(w >= 40 & w<= 65, (w-40)/625, 
+         ifelse( w < 65 & w <= 90, (90-w)/625, 0
+  ) )
+}
+f(55.5)
+```
+
+## b. Viết hàm 𝐹(𝑤) trong R như định nghĩa trên với input là numeric vector 𝑤 theo cách vector hóa (không dùng vòng lặp).
+
+```{r}
+F <- function(w){
+  ifelse( w < 40, 0,
+          ifelse( w >= 40 & w <= 65, (w^2-80*w+1600)/1250, 
+                  ifelse( w> 65 & w <= 90, (180*w - w^2 - 6850)/1250, 1)
+          ))
+}
+F(55.5)
+```
+
+## c. Gọi các hàm đã định nghĩa ở câu a. và câu b. để kiểm tra 𝑓(55.2) = 0.02432 và 𝐹(55.2) = 0.184832.
+
+```{r}
+f(55.2)
+F(55.2)
+```
+
+## d. Sử dụng hàm 𝐹(𝑤) để tính 𝑃 (𝑊 > 60).
+
+P(W>60)=1−P(W≤60)
+
+```{r}
+p_d <- 1-F(60)
+p_d
+```
+
+## e. Sử dụng hàm 𝐹(𝑤) để tính 𝑃 (60.3 < 𝑊 < 76.89).
+
+```{r}
+p_e <- F( 76.89) - F(60.3)
+p_e
+```
+
+# Bài 3: Phân bố nhị thức
+
+Một khu bảo tồn thiên nhiên có rừng có 13 đài ngắm chim nằm rải rác khắp một khu đất rộng lớn. Các nhà tự nhiên học khẳng định rằng tại bất kỳ thời điểm nào, có 75% cơ hội nhìn thấy chim ở mỗi đài ngắm chim. Giả sử bạn đi bộ qua khu bảo tồn và ghé thăm mọi đài ngắm chim. Đặt 𝑋 là biến ngẫu nhiên nhị thức biểu thị tổng số ngắm chim mà ở đó bạn nhìn thấy chim.
+
+## a. Vẽ probability mass function của biến 𝑋.
+
+P(X=x)
+
+```{r}
+x <- 0:13
+y <- dbinom(x,13,0.75)
+y
+```
+
+
+## b. Xác suất bạn nhìn thấy chim ở tất cả các đài ngắm chim là bao nhiêu?
+
+```{r}
+y_b <- dbinom(13,13,0.75)
+y_b
+```
+
+## c. Xác suất bạn nhìn thấy chim ở nhiều hơn 9 nền tảng là bao nhiêu?
+
+```{r}
+y_c <- 1- dbinom(9,13,0.75)
+y_c
+```
+
+## d. Xác suất nhìn thấy chim từ 8 đến 11 đài ngắm chim là bao nhiêu? Xác định câu trả lời của bạn bằng cách chỉ sử dụng hàm d-xxx và p-xxx.
+
+P(X=8)+P(X=9)+P(X=10)+P(X=11) hoặc P(X≤11)−P(X≤7)
+
+```{r}
+y_d <- sum(dbinom(8:11,13, 0.75))
+y_d
+```
+
+## e. Tính giá trị trung bình và độ lệch chuẩn của biến 𝑋.
+
+E(X)=np
+Var(X)=np(1−p)
+
+```{r}
+n <- 13
+p <- 0.75
+mean <- n*p
+mean 
+var <- n*p*(1-p)
+var
+sd <- sqrt(var)
+sd
+```
+
+# Bài 4: Phân bố Poison
+
+Vào mỗi thứ bảy, vào cùng một thời điểm, một người đứng bên lề đường và thống kê số lượng ô tô đi qua trong vòng 120 phút. Dựa trên kiến thức trước đây, người đó tin rằng số ô tô đi qua trung bình trong thời gian này chính xác là 107. Gọi X đại diện cho biến ngẫu nhiên Poisson mô tả số ô tô đi qua vị trí của anh
+ta trong mỗi buổi thứ bảy.
+
+X∼Poisson(107)
+
+## a. Xác suất để hơn 100 xe ô tô vượt qua anh ta vào bất kỳ ngày thứ bảy nào đã cho?
+
+P(X>100)=1−P(X≤100)
+
+```{r}
+p_a <- ppois(100,107)
+p_a
+```
+
+## b. Xác định xác suất để không có ô tô nào vượt qua.
+
+```{r}
+p_b <- ppois(0,107)
+p_b
+```
+
+## c. Vẽ đồ thị của Poisson mass function với các giá trị 60 ≤ 𝑥 ≤ 150.
+
+```{r}
+p_c <- ppois(60:150, 107)
+p_c
+plot(x, y,
+     type = "h",
+     main = "Poisson PMF",
+     xlab = "x",
+     ylab = "P(X=x)")
+
+```
+
+## d. Mô phỏng 260 kết quả từ phân phối này (khoảng 5 năm quan sát mỗi thứ bảy hàng tuần). Vẽ biểu đồ kết quả mô phỏng bằng cách sử dụng hàm hist, sử dụng xlim để đặt các giới hạn ngang (horizontal limits) từ 60 đến 150. So sánh biểu đồ này với hình dạng của Poisson mass function ở câu c.
+
+```{r}
+sim <- rpois(260,107)
+hist(sim, xlim=c(60,150))
+
+```
+
+- Cả hai đồ thị đều có đỉnh nằm quanh giá trị trung bình λ=107.
+
+- Histogram của dữ liệu mô phỏng có dạng gần giống với đồ thị Poisson PMF, tập trung nhiều quan sát ở khu vực xấp xỉ 100–115 xe.
+
+- Histogram không hoàn toàn trơn tru như PMF do chỉ được tạo từ 260 lần mô phỏng nên có sai khác ngẫu nhiên giữa các cột.
+
+- PMF biểu diễn phân phối lý thuyết chính xác của biến Poisson, trong khi histogram biểu diễn dữ liệu thực nghiệm được sinh ngẫu nhiên từ phân phối đó.
+
+- Khi số lần mô phỏng tăng lên (ví dụ 1000 hoặc 10000 lần), histogram sẽ ngày càng giống với hình dạng của Poisson PMF hơn.
+
+# Bài 5: Phân bố đều
+
+Bạn đến thăm một công viên quốc gia và được thông báo rằng chiều cao của một loài cây nhất định được tìm thấy trong rừng có phân bố đều từ 3 đến 70 feet.
+
+X∼U(a,b)∼U(3,70)
+
+## a. Xác suất bạn gặp cây thấp hơn 5.5 feet là bao nhiêu?
+
+P(X<5.5) = F(5.5)
+
+```{r}
+p_a <- punif(5.5,3,70)
+p_a
+```
+
+## b. Đối với hàm mật độ xác suất này, chiều cao tại điểm cắt của 15 phần trăm cây cao nhất là bao nhiêu?
+
+P(X>x)=0.15 hay P(X≤x)=0.85
+
+```{r}
+p_b <- qunif(0.85,3,70)
+p_b
+```
+
+## c. Đánh giá giá trị trung bình và độ lệch chuẩn của phân bố chiều cao cây.
+
+```{r}
+mean <- (70+3)/2
+mean
+sd <- (70-3)/sqrt(12)
+sd
+```
+
+## d. Sử dụng câu c, xác nhận rằng xác suất bạn gặp cây có chiều cao nằm trong khoảng nửa độ lệch chuẩn (nghĩa là thấp hơn hoặc cao hơn) so với chiều cao trung bình là khoảng 28,9 phần trăm.
+
+```{r}
+p_d <- punif(mean+sd/2,3,70) - punif(mean-sd/2,3,70)
+p_d
+```
+
+## e. Hàm mật độ xác suất có chiều cao bao nhiêu? Vẽ đồ thị của nó.
+
+```{r}
+p_e <- 1/(70-3)
+p_e
+
+x <- seq(0, 75, by = 0.1)
+
+plot(x,
+     dunif(x, 3, 70),
+     type = "l",
+     xlab = "Height",
+     ylab = "Density",
+     main = "Uniform Density")
+```
+
+Đồ thị hàm mật độ xác suất có dạng hình chữ nhật trên khoảng từ 3 đến 70 feet. Trong khoảng này, mật độ xác suất là hằng số f(x)=1/67≈0.0149, cho thấy mọi chiều cao trong khoảng đều có khả năng xuất hiện như nhau. Ngoài khoảng [3,70], mật độ xác suất bằng 0 vì không thể xuất hiện cây có chiều cao nhỏ hơn 3 feet hoặc lớn hơn 70 feet.
+
+## f. Mô phỏng chiều cao của 10 cây quan sát được. Dựa trên dữ liệu này, hãy sử hàm quantile để ước tính câu trả lời mà bạn đã đạt được trong câu b. Lặp lại mô phỏng của bạn, lần này tạo ra 1.000 giá trị chiều cao cây và ước tính câu b một lần nữa. Làm điều này một vài lần, mỗi lần ghi nhớ lại 2 ước tính. Nhìn chung, bạn nhận thấy điều gì về 2 ước tính của mình (một dựa trên 10 giá trị và một dựa trên 1.000 giá trị) ứng với giá trị lý thuyết trong câu b?
+
+```{r}
+h10 <- runif(10, 3, 70)
+quantile(h10, 0.85)
+
+h1000 <- runif(1000, 3, 70)
+quantile(h1000, 0.85)
+```
+
+Giá trị lý thuyết của phân vị 85% là 59.95 feet. Khi mô phỏng chỉ với 10 quan sát, ước lượng từ hàm quantile() thay đổi khá nhiều giữa các lần chạy và có thể lệch đáng kể so với giá trị lý thuyết. Ngược lại, khi mô phỏng 1000 quan sát, các ước lượng ổn định hơn và thường rất gần với giá trị lý thuyết 59.73. Điều này cho thấy khi kích thước mẫu tăng, sai số lấy mẫu giảm và kết quả mô phỏng hội tụ về giá trị lý thuyết của phân bố đều.
+
+# Bài 6: Phân bố chuẩn
+
+Một gia sư biết rằng khoảng thời gian cần thiết để hoàn thành một câu hỏi thống kê nhất định của sinh viên đại học năm thứ nhất, 𝑋, có phân bố chuẩn với giá trị trung bình là 17 phút và độ lệch chuẩn là 4.5 phút.
+
+X∼N(μ=17,σ=4.5)
+
+## a. Xác suất một sinh viên được chọn ngẫu nhiên mất hơn 20 phút để hoàn thành câu hỏi là bao nhiêu?
+
+```{r}
+p_a <- pnorm(20,mean=17, sd=4.5)
+p_a
+```
+
+## b. Xác suất một sinh viên mất từ 5 đến 10 phút để trả lời câu hỏi là bao nhiêu?
+
+P(5<X<10) = P(X<10)−P(X<5)
+
+```{r}
+p_b <- pnorm(10, mean=17, sd=4.5)- pnorm(5, mean=17, sd=4.5)
+p_b
+```
+
+## c. Cho biết 10% sinh viên chậm nhất sẽ mất tối thiểu bao phút cho một câu hỏi?
+
+```{r}
+p_c <- qnorm(0.90, mean = 17, sd = 4.5)
+p_c
+```
+
+## d. Vẽ đồ thị phân phối chuẩn của 𝑋 giữa ±4𝜎 và tô xám vùng xác suất của 10% sinh viên chậm nhất.
+
+```{r}
+cutoff <- qnorm(0.90, 17, 4.5)
+cutoff
+mu <- 17
+sigma <- 4.5
+
+x <- seq(mu - 4*sigma,
+         mu + 4*sigma,
+         length = 1000)
+
+y <- dnorm(x, mu, sigma)
+
+plot(x, y,
+     type = "l",
+     lwd = 2,
+     main = "Normal Distribution",
+     xlab = "Time (minutes)",
+     ylab = "Density")
+
+cutoff <- qnorm(0.90, mu, sigma)
+
+x_fill <- seq(cutoff,
+              mu + 4*sigma,
+              length = 500)
+
+y_fill <- dnorm(x_fill, mu, sigma)
+
+polygon(c(x_fill, rev(x_fill)),
+        c(y_fill, rep(0,length(y_fill))),
+        col = "lightgray",
+        border = NA)
+
+lines(x, y, lwd = 2)
+```
+
+Vùng tô xám biểu diễn 10% sinh viên có thời gian hoàn thành lâu nhất. Điểm bắt đầu của vùng này là phân vị 90% của phân phối chuẩn.
+
+## e. Tạo ra thời gian hoàn thành câu hỏi cho 10 sinh viên từ phân bố đã cho.
+
+```{r}
+times <- rnorm(10,mean = 17,sd = 4.5)
+times
+```
+
+# Bài 7: Phân bố mũ
+
+Giả sử một nhà sản xuất máy điều hòa rằng sản phẩm có tuổi thọ trung bình là 11 năm trước khi cần bất kỳ loại thông báo sửa chữa nào. Gọi biến ngẫu nhiên X đại diện cho thời gian máy hoạt động tốt cho đến khi cần sửa chữa và giả sử X tuân theo phân phối mũ với 𝜆𝑒 = 1/11.
+
+## a. Công ty cung cấp bảo hành sửa chữa toàn bộ trong vòng một năm cho thiết bị này. Xác suất để một chủ sở hữu của một máy điều hòa được chọn ngẫu nhiên sử dụng chế độ bảo hành là bao nhiêu?
+
+```{r}
+p_a <- pexp(1, rate=1/11)
+p_a
+```
+
+## b. Một công ty đối thủ cung cấp bảo hành 6 năm cho thiết bị điều hòa họ nhưng biết rằng các thiết bị của họ tồn tại trung bình chỉ chín năm trước khi yêu cầu một số loại sửa chữa. Cơ hội sử dụng bảo hành đó là bao nhiêu?
+
+```{r}
+xb <- 1/9
+p_b <- pexp(6,rate=xb)
+p_b
+```
+
+## c. Xác định xác suất một máy điều hòa được chọn ngẫu nhiên có tuổi thọ kéo dài hơn 15 năm cho câu a và câu b.
+
+```{r}
+A <- 1-pexp(15, rate=1/11)
+B <- 1-pexp(15, rate=1/9)
+A
+B
+```

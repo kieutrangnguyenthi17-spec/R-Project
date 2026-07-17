@@ -1,0 +1,376 @@
+---
+title: "24133064_NguyenThiKieuTrang_Northwind_Queries_Answers"
+output: html_document
+date: "2026-06-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DBI)
+library(RSQLite)
+```
+
+```{r}
+con <- dbConnect(
+  SQLite(),
+  dbname = "Northwind2000.db"
+)
+dbListTables(con)
+```
+
+# 1. Liệt kê name, address, city, và region của các employee sống ở 'USA'. 
+
+```{r}
+dbGetQuery(con,"
+SELECT FirstName,
+       LastName,
+       Address,
+       Region
+FROM Employees
+WHERE Country = 'USA'
+")
+```
+# 2. Liệt kê title và name của các employee đã bán ít nhất một product 'Gravad Lax' hoặc 'MishiKobe Niku'. 
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT
+       e.Title,
+       e.FirstName || ' ' || e.LastName AS EmployeeName
+FROM Employees e
+JOIN Orders o
+     ON e.EmployeeID = o.EmployeeID
+JOIN [Order Details] od
+     ON o.OrderID = od.OrderID
+JOIN Products p
+     ON od.ProductID = p.ProductID
+WHERE p.ProductName IN ('Gravad Lax', 'Mishi Kobe Niku')
+")
+```
+# 3. Liệt kê name và title của các employee và name và title của các em
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    e.Title AS EmployeeTitle,
+    e.FirstName || ' ' || e.LastName AS EmployeeName,
+    m.Title AS ManagerTitle,
+    m.FirstName || ' ' || m.LastName AS ManagerName
+FROM Employees e
+LEFT JOIN Employees m
+    ON e.ReportsTo = m.EmployeeID
+")
+```
+
+# 4. Liệt kê customer name, product name và supplier name cho các customer sống ở 'London' và các supplier có tên 'Pavlova, Ltd.' hoặc 'Karkki Oy'. 
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    c.CompanyName,
+    p.ProductName,
+    s.CompanyName
+FROM Customers c
+JOIN Orders o
+    ON c.CustomerID = o.CustomerID
+JOIN [Order Details] od
+    ON o.OrderID = od.OrderID
+JOIN Products p
+    ON od.ProductID = p.ProductID
+JOIN Suppliers s
+    ON p.SupplierID = s.SupplierID
+WHERE c.City = 'London'
+  AND s.CompanyName IN ('Pavlova, Ltd.', 'Karkki Oy')
+")
+```
+
+# 5. Liệt kê name của các employee có tuổi lớn hơn một employee nào đó sống ở 'London'. 
+
+```{r}
+dbGetQuery(con,"
+SELECT FirstName,
+       LastName
+FROM Employees
+WHERE BirthDate <
+(
+    SELECT MAX(BirthDate)
+    FROM Employees
+    WHERE City = 'London'
+)
+")
+```
+
+# 6. Liệt kê name của các employee có tuổi lớn hơn tất cả employee sống ở 'London'. 
+
+```{r}
+dbGetQuery(con,"
+SELECT FirstName,
+       LastName
+FROM Employees
+WHERE BirthDate <
+(
+    SELECT MIN(BirthDate)
+    FROM Employees
+    WHERE City = 'London'
+)
+")
+```
+
+# 7. Liệt kê name của các employee làm việc lâu năm hơn mọi employee ở 'London'. 
+
+```{r}
+dbGetQuery(con,"
+SELECT FirstName,
+       LastName
+FROM Employees
+WHERE HireDate <
+(
+    SELECT MIN(HireDate)
+    FROM Employees
+    WHERE City = 'London'
+)
+")
+```
+
+# 8. Liệt kê name của các employee và city nơi họ sống đối với các employee đã bán hàng cho các customer ở cùng thành phố với họ. 
+
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT
+       e.FirstName,
+       e.LastName,
+       e.City
+FROM Employees e
+JOIN Orders o
+     ON e.EmployeeID = o.EmployeeID
+JOIN Customers c
+     ON o.CustomerID = c.CustomerID
+WHERE e.City = c.City
+")
+```
+
+# 9. Liệt kê name của các customer không đặt bất cứ product nào. 
+
+```{r}
+dbGetQuery(con,"
+SELECT c.ContactName
+FROM Customers c
+LEFT JOIN Orders o
+     ON c.CustomerID = o.CustomerID
+WHERE o.OrderID IS NULL
+")
+```
+
+# 10. Liệt kê name của các category và giá trung bình (average price) của các product trong mỗicategory
+
+```{r}
+dbGetQuery(con,"
+SELECT c.CategoryName,
+       AVG(p.UnitPrice) AS AvgUnitPrice
+FROM Categories c
+JOIN Products p
+     ON c.CategoryID = p.CategoryID
+GROUP BY c.CategoryName
+")
+```
+
+# 11. Liệt kê id và name của các supplier cung cấp hơn 3 product. 
+
+```{r}
+dbGetQuery(con,"
+SELECT s.SupplierID,
+       s.CompanyName
+FROM Suppliers s
+JOIN Products p
+     ON s.SupplierID = p.SupplierID
+GROUP BY s.SupplierID, s.CompanyName
+HAVING COUNT(p.ProductID) > 3
+")
+```
+
+# 12. Liệt kê id, name, và số lượng order của các employee sắp xếp theo employee id. 
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName,
+    COUNT(o.OrderID) AS OrderNum
+FROM Employees e
+LEFT JOIN Orders o
+    ON e.EmployeeID = o.EmployeeID
+GROUP BY
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName
+ORDER BY e.EmployeeID
+")
+```
+
+# 13. Với mỗi employee, liệt kê id, name, và số loại product khác nhau họ đã bán, sắp xếp employee id. 
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName,
+    COUNT(DISTINCT od.ProductID) AS ProductNum
+FROM Employees e
+JOIN Orders o
+    ON e.EmployeeID = o.EmployeeID
+JOIN [Order Details] od
+    ON o.OrderID = od.OrderID
+GROUP BY e.EmployeeID, e.FirstName, e.LastName
+ORDER BY e.EmployeeID
+")
+```
+
+# 14. Liệt kê id, name, và tổng doanh thu của mỗi employee, sắp xếp theo employee id. 
+ 
+```{r}
+dbGetQuery(con,"
+SELECT
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName,
+    SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSales
+FROM Employees e
+JOIN Orders o
+    ON e.EmployeeID = o.EmployeeID
+JOIN [Order Details] od
+    ON o.OrderID = od.OrderID
+GROUP BY e.EmployeeID, e.FirstName, e.LastName
+ORDER BY e.EmployeeID
+")
+```
+
+# 15. Liệt kê id, name, và tổng doanh thu của các employee đã bán được hơn 70 product khác nhau, sắp xếp theo employee id. 
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName,
+    SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSales
+FROM Employees e
+JOIN Orders o
+    ON e.EmployeeID = o.EmployeeID
+JOIN [Order Details] od
+    ON o.OrderID = od.OrderID
+GROUP BY e.EmployeeID, e.FirstName, e.LastName
+HAVING COUNT(DISTINCT od.ProductID) > 70
+ORDER BY e.EmployeeID
+")
+```
+
+# 16. Liệt kê name của các employee đã bán các product của hơn 28 supplier. 
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName
+FROM Employees e
+JOIN Orders o
+    ON e.EmployeeID = o.EmployeeID
+JOIN [Order Details] od
+    ON o.OrderID = od.OrderID
+JOIN Products p
+    ON od.ProductID = p.ProductID
+GROUP BY e.EmployeeID, e.FirstName, e.LastName
+HAVING COUNT(DISTINCT p.SupplierID) > 28
+ORDER BY e.EmployeeID
+")
+```
+
+# 17. Liệt kê customer name và product name sao cho số lượng product đó được mua bởi customer đó trong một order lớn hơn 5 lần số lượng trung bình product đó được mua trong một order bởi tất cả các customer. 
+
+```{r}
+dbGetQuery(con,"
+SELECT
+    c.ContactName,
+    p.ProductName
+FROM Customers c
+JOIN Orders o
+    ON c.CustomerID = o.CustomerID
+JOIN [Order Details] od
+    ON o.OrderID = od.OrderID
+JOIN Products p
+    ON od.ProductID = p.ProductID
+WHERE od.Quantity > 5 * (
+    SELECT AVG(od2.Quantity)
+    FROM [Order Details] od2
+    WHERE od2.ProductID = od.ProductID
+)
+")
+```
+
+# 18. Liệt kê name của các customer đã mua tất cả product với giá < 5. 
+
+```{r}
+dbGetQuery(con,"
+SELECT c.ContactName
+FROM Customers c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Products p
+    WHERE p.UnitPrice < 5
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Orders o
+          JOIN [Order Details] od
+              ON o.OrderID = od.OrderID
+          WHERE o.CustomerID = c.CustomerID
+            AND od.ProductID = p.ProductID
+      )
+)
+")
+```
+
+# 19. Liệt kê name của các product được bán bởi mọi employee. 
+```{r}
+dbGetQuery(con,"
+SELECT p.ProductName
+FROM Products p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Employees e
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Orders o
+        JOIN [Order Details] od
+             ON o.OrderID = od.OrderID
+        WHERE o.EmployeeID = e.EmployeeID
+          AND od.ProductID = p.ProductID
+    )
+)
+")
+```
+
+# 20. Liệt kê name của các customer đã mua tất cả product được đặt hàng customer có id là 'LAZYK'.
+
+```{r}
+dbGetQuery(con,"
+SELECT c.ContactName
+FROM Customers c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Orders o_lazy
+    JOIN [Order Details] od_lazy
+        ON o_lazy.OrderID = od_lazy.OrderID
+    WHERE o_lazy.CustomerID = 'LAZYK'
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Orders o
+          JOIN [Order Details] od
+              ON o.OrderID = od.OrderID
+          WHERE o.CustomerID = c.CustomerID
+            AND od.ProductID = od_lazy.ProductID
+      )
+)
+")
+```

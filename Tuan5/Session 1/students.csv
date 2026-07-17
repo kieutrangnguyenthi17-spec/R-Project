@@ -1,0 +1,11 @@
+class_id,student_name,sem1_score,sem2_score,attendance
+CS01-A,An,7.5,7.8,92
+CS01-A,Binh,8,,85
+CS01-A,,7.2,7.6,83
+CS02-B,Chi,6.2,6.8,78
+CS02-B,Dung,7.1,7.4,88
+IT01-A,Huy,8.4,8.7,95
+IT01-A,Lan,9,9.2,97
+IT01-A,Minh,2,10,101
+IT01-A,Minh,2,10,101
+IT02-C,Trang,11,9.5,90

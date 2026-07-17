@@ -1,0 +1,233 @@
+---
+title: "HW 1 - Thao tác trên dữ liệu với dplyr"
+author: "Nguyễn Thị Kiều Trang"
+date: "16/09/2024"
+output:
+  html_document: default
+  pdf_document: default
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Giới thiệu
+<!-- Ở bài lab này, chúng ta sẽ thực hành thao tác và trực quan hóa dữ liệu với thư viện `tidyverse`. Bạn sẽ sử dụng thư viện này để quản lý, biến đổi, tóm tắt, và trực quan hóa dữ liệu.  -->
+
+```{r load-tidyverse}
+library(tidyverse)
+```
+
+## Dữ liệu
+<!-- Dữ liệu thực nghiệm cho bài lab này là tập dữ liệu về những người được giải Nobel. Tập dữ liệu này có thể được tìm thấy dưới dạng tệp csv. Bạn có thể đọc nó bằng cách sử dụng lệnh sau đây.  -->
+
+```{r load-data}
+nobel <- read_csv("./nobel.csv")
+```
+
+<!-- Tập dữ liệu này có các biến sau: -->
+
+<!-- - `id`: mã số -->
+<!-- - `firstname`: tên của người đoạt giải -->
+<!-- - `surname`: họ của người đoạt giải -->
+<!-- - `year`: năm đoạt giải -->
+<!-- - `category`: danh mục giải thưởng -->
+<!-- - `affiliation`: nơi công tác của người đoạt giải -->
+<!-- - `city`: thành phố mà người đoạt giải đang sinh sống vào năm đoạt giải -->
+<!-- - `country`: quốc gia mà người đoạt giải đang sinh sống vào năm đoạt giải -->
+<!-- - `born_date`: ngày sinh của người đoạt giải -->
+<!-- - `died_date`: ngày mất của người đoạt giải -->
+<!-- - `gender`: giới tính của người đoạt giải -->
+<!-- - `born_city`: thành phố mà người đoạt giải sinh ra -->
+<!-- - `born_country`: quốc gia mà người đoạt giải sinh ra -->
+<!-- - `born_country_code`: mã quốc gia mà người đoạt giải sinh ra -->
+<!-- - `died_city`: thành phố mà người đoạt giải mất -->
+<!-- - `died_country`: quốc gia mà người đoạt giải mất -->
+<!-- - `died_country_code`: mã quốc gia mà người đoạt giải mất -->
+<!-- - `overall_motivation`: động lực chung cho sự công nhận -->
+<!-- - `share`: số người cùng đoạt giải -->
+<!-- - `motivation`: động lực cho sự công nhận -->
+
+<!-- Trong một số trường hợp, tên của thành phố/quốc gia được thay đổi sau khi người đoạt giải được trao (ví dụ: năm 1975 Bosnia and Herzegovina được gọi là Cộng hòa Liên bang Xã hội Chủ nghĩa Nam Tư). Trong những trường hợp này, các biến dưới đây phản ánh một tên khác với các biến của chúng mà không có hậu tố `_original`.  -->
+
+<!-- - `born_country_original`: quốc gia gốc nơi người đoạt giải sinh ra  -->
+<!-- - `born_city_original`: thành phố gốc nơi người đoạt giải sinh ra  -->
+<!-- - `died_country_original`: quốc gia gốc nơi người đoạt giải mất -->
+<!-- - `died_city_original`: hành phố ban đầu nơi người đoạt giải mất -->
+<!-- - `city_original`: thành phố gốc nơi người đoạt giải sinh sống tại thời điểm đoạt giải -->
+<!-- -   `country_original`: quốc gia gốc nơi người đoạt giải sinh sống tại thời điểm đoạt giải -->
+
+
+
+<!-- ## Câu hỏi -->
+
+
+<!-- ### Câu 1. -->
+<!-- Có bao nhiêu quan sát và bao nhiêu biến trong tập dữ liệu?  -->
+
+```{r q1}
+id="d7s4om"
+dim(nobel)
+
+glimpse(nobel)
+```
+
+<!-- Mỗi hàng biểu thị điều gì? -->
+
+
+<!-- Đoạn mã sau tạo một data frame mới có tên là `nobel_living` bao gồm những người đoạt giải thỏa mãn những điều kiện sau: -->
+
+<!-- - những người đoạt giải mà quốc gia khác `NA` -->
+
+<!-- - những người đoạt giải không phải là các tổ chức (`gender != "org"`) -->
+
+<!-- - những người đoạt giải còn sống (`died_date` là `NA`) -->
+
+```{r q2}
+id="0yydkd"
+nobel_living <- nobel %>%
+  filter(
+    !is.na(country),
+    gender != "org",
+    is.na(died_date)
+  )
+```
+
+
+## Hầu hết những người đoạt giải Nobel còn sống đều sống ở Mỹ khi họ đoạt giải
+
+<!-- Bạn có thể đọc bài viết tại [buzzfeednews](https://www.buzzfeednews.com/article/peteraldhous/immigration-and-science). -->
+
+<!-- Chúng ta sẽ kiểm tra xem liệu điều đó có đúng không. -->
+
+<!-- Đầu tiên, chúng ta sẽ tạo một biến mới để xác định xem người đoạt giải có ở Mỹ hay không khi họ giành được giải thưởng của mình. Chúng ta sẽ sử dụng hàm `mutate()` cho điều này. Đoạn mã sau thêm vào `nobel_living` data frame một biến mới là `country_us`. Chúng ta sử dụng câu lệnh `if` để tạo biến này. Đối số đầu tiên trong hàm `if_else()` mà chúng ta sử dụng để viết câu lệnh `if` này là điều kiện mà chúng ta đang kiểm tra. Nếu `country == "USA"`, chúng ta gán `country_us` là `"USA"`. Nếu không, chúng ta gán `country_us` là `"Other"`.  -->
+
+```{r}
+nobel_living <- nobel_living %>%
+  mutate(
+    country_us = case_when(
+      country == "USA" ~ "USA",
+      TRUE ~ "Other"
+    )
+  )
+```
+
+<!-- Tiếp theo, chúng ta sẽ giới hạn phân tích của mình chỉ trong các danh mục giải thưởng (category) sau: Vật lý (Physics), Y học (Medicine), Hóa học (Chemistry), và Kinh tế (Economics). -->
+
+```{r}
+nobel_living_science <- nobel_living %>%
+  filter(
+    category %in% c(
+      "Physics",
+      "Medicine",
+      "Chemistry",
+      "Economics"
+    )
+  )
+```
+
+<!-- Đối với các câu hỏi tiếp theo, bạn hãy làm việc với `nobel_living_science` data frame đã tạo ở trên. -->
+
+
+
+### Câu 2.
+
+<!-- Tạo một faceted bar plot để trực quan hóa mối quan hệ giữa danh mục giải thưởng và liệu người chiến thắng có ở Mỹ khi họ giành giải thưởng Nobel hay không. Diễn giải biểu đồ của bạn và nói một vài lời về việc liệu tiêu đề bài báo Buzzfeed được đề cập ở trên có được hỗ trợ bởi dữ liệu hay không.  -->
+
+<!-- - Biểu đồ của bạn nên được phân loại theo danh mục. -->
+<!-- - Đối với mỗi facet, bạn nên có hai thanh (bar), một cho người chiến thắng ở Mỹ (US) và một cho các nước khác (Other). -->
+<!-- - Lật các tọa độ để các thanh nằm ngang (không để nằm dọc). -->
+
+```{r q3}
+id="0l92qn"
+ggplot(
+  data = nobel_living_science,
+  mapping = aes(
+    x = country_us,
+    fill = country_us
+  )
+) +
+  geom_bar() +
+  facet_wrap(~ category) +
+  coord_flip() +
+  labs(
+    title = "Living Nobel Prize Winners by Country",
+    x = "Country",
+    y = "Number of Winners",
+    fill = "Country"
+  ) +
+  theme_minimal()
+```
+
+
+
+## Trong số những người đoạt giải Nobel ở Mỹ, nhiều người sinh ra ở các nước khác
+
+### Câu 3.
+
+<!-- Tạo một biến mới có tên `born_country_us` có giá trị `"USA"` nếu người đoạt giải được sinh ra ở Mỹ, và `"Other"` nếu không. Có bao nhiêu người trong số những người thắng giải sinh ra ở Mỹ?  -->
+
+```{r q4}
+nobel_living_science <- nobel_living_science %>%
+  mutate(
+    born_country_us = case_when(
+      born_country == "USA" ~ "USA",
+      TRUE ~ "Other"
+    )
+  )
+
+nobel_living_science %>%
+  count(born_country_us)
+```
+
+
+### Câu 4.
+
+<!-- Thêm một biến thứ hai vào biểu đồ trong câu 3 dựa trên việc người đoạt giải có sinh ra ở Mỹ hay không. Dựa trên biểu đồ của bạn, dữ liệu có hỗ trợ tuyên bố của Buzzfeed không? Giải thích lý do của bạn trong 1-2 câu.  -->
+
+<!-- - Biểu đồ cuối cùng của bạn nên chứa một facet cho mỗi danh mục (category). -->
+<!-- - Với mỗi facet, cần có một bar cho biết liệu người đoạt giải có giành được giải thưởng ở Mỹ hay không. -->
+<!-- - Mỗi bar phải có các phân đoạn để biết người đoạt giải có sinh ra ở Hoa Kỳ hay không. -->
+
+```{r q5}
+ggplot(
+  nobel_living_science,
+  aes(
+    x = country_us,
+    fill = born_country_us
+  )
+) +
+  geom_bar() +
+  facet_wrap(~ category) +
+  coord_flip() +
+  labs(
+    title = "Nobel Winners in USA and Their Birth Country",
+    x = "Country at Award Time",
+    y = "Count",
+    fill = "Born In"
+  ) +
+  theme_bw()
+```
+
+
+## Nơi sinh ra những người đoạt giải Nobel nhập cư
+
+<!-- **Lưu ý:** biểu đồ thanh của bạn sẽ không khớp chính xác với biểu đồ từ bài báo trên Buzzfeed. Điều này có thể là do dữ liệu đã được cập nhật kể từ khi bài báo được xuất bản.  -->
+
+
+### Câu 5.
+
+<!-- Hãy lọc ra những người chiến thắng đã giành được giải thưởng của họ ở Mỹ, nhưng sinh ra bên ngoài Mỹ, sau đó tạo một bảng tần suất (với hàm `count()`) cho quốc gia gốc của họ (`born_country`) và sắp xếp data frame kết quả theo thứ tự số lần quan sát giảm dần cho mỗi quốc gia. Nước nào là phổ biến nhất?  -->
+
+```{r q6}
+immigrant_winners <- nobel_living_science %>%
+  filter(
+    country_us == "USA",
+    born_country_us == "Other"
+  )
+
+immigrant_winners %>%
+  count(born_country, sort = TRUE)
+```
+

@@ -1,0 +1,161 @@
+---
+title: "Data visulization with ggplot2_slide"
+author: "Nguyễn Thị Kiều Trang - MSSV: 24133064"
+output: html_document
+date: "2026-05-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Load mpdata
+
+```{r}
+data(mpg)
+head(mpg)
+```
+
+# Xem cấu trúc của mpg data
+
+```{r}
+str(mpg)
+```
+
+# Tạo biểu đồ với ggplot
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ, y=hwy))
+```
+
+# Mapping
+
+```{r}
+ggplot(data=mpg, mapping = aes(x=displ, y=hwy))+
+  geom_point()
+```
+
+# Global mapping
+
+```{r}
+ggplot(mpg, mapping=aes(x=displ, y=hwy))+
+  geom_point()
+```
+
+# Local mapping
+
+```{r}
+ggplot(mpg,mapping=aes(x=displ, y=hwy))+
+  geom_point(mapping=aes(color=class))
+```
+
+## Thiết lập locally
+
+```{r}
+ggplot(data=mpg, mapping =aes(x=displ, y=hwy))+     geom_point(mapping=aes(color=class))+
+  geom_smooth(data=filter(mpg,displ<5))
+```
+
+# Aesthetics - thuộc tính thẫm mỹ
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(aes(x=displ,y=hwy,color=class))
+```
+
+## Một màu
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(aes(x=displ,y=hwy,color="green"))
+```
+
+## Size aesthetic
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ, y=hwy, size=class))
+```
+
+## Alpha aesthetic - transparency
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ, y=hwy, alpha=class))
+```
+
+## Shape aesthetic - Hình dạng của điểm dữ liệu
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ, y=hwy, shape=class))
+```
+
+## Kết hợp nhiều aesthetic
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ, y=hwy, size=class, color=class))
+```
+
+# Faceting - tách biểu đồ con
+
+## Facet_wrap
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ, y=hwy))+
+  facet_wrap(~ class, nrow=2)
+```
+
+## facet_grid
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))+
+  facet_grid(drv ~ cyl)
+```
+
+## Không facet theo dòng hoặc cột
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))+
+  facet_grid(. ~ cyl)
+```    
+
+# Goems - geometric objects
+
+## Geom_smooth
+
+```{r}
+ggplot(data=mpg)+
+  geom_smooth(mapping=aes(x=displ,y=hwy))
+
+ggplot(data=mpg)+
+  geom_smooth(mapping=aes(x=displ,y=hwy, linetype=drv))
+```
+
+## Kết hợp geom_point, geom_smooth
+
+```{r}
+ggplot(data=mpg, mapping=aes(x=displ, y=hwy, color=drv)) + geom_point()+
+  geom_smooth()
+
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +
+  geom_point(mapping = aes(color = class)) +
+  geom_smooth()
+```
+
+## Kết hợp geom_point, geom_smooth, local mapping
+
+```{r}
+ggplot(data=mpg, mapping=aes(x=displ, y=hwy))+
+  geom_point(mapping=aes(color=class))+
+  geom_smooth(data=filter(mpg, class=="subcompact"),se=FALSE)
+```
+
+
+

@@ -1,0 +1,168 @@
+---
+title: "dplyr"
+output: html_document
+date: "2026-05-11"
+---
+
+```{r}
+library(dplyr)
+```
+
+# Thông tin về các nhân vật trong loạt phim Star Wars.
+
+```{r}
+glimpse(starwars)
+```
+
+# Hiện các dòng đầu tiên 
+
+```{r}
+head(starwars)
+```
+
+# Chọn cột
+
+```{r}
+select(starwars, name, height, mass, gender)
+```
+
+# Chọn dòng 
+
+```{r}
+filter(starwars, sex=='male' & height > 180)
+```
+
+# Toán tử pipe
+
+```{r}
+filter(select(starwars, name, height, mass, sex),
+       sex == 'male' & height > 180)
+
+starwars %>%
+  select(name, height, mass, sex) %>%
+  filter(sex == 'male' & height > 180)
+```
+
+# Loại bỏ cột
+
+```{r}
+starwars %>%
+select(-c(hair_color, skin_color, eye_color,
+            films, vehicles, starships))
+```
+
+# Chọn các cột liên tiếp 
+
+```{r}
+starwars %>%
+select (name:mass)
+```
+
+# Sắp xếp các dòng theo thứ tự với arrange
+
+```{r}
+starwars %>%
+  select(name:mass) %>%
+  arrange(mass)
+```
+
+# Sắp xếp các dòng theo thứ tự giảm dần với arrange và desc
+
+```{r}
+starwars %>%
+  select(name:mass) %>%
+  arrange(desc(mass))
+```
+
+# Chọn các dòng theo chỉ số với slice
+
+```{r}
+starwars %>%
+  select(name:mass) %>%
+  slice(1:5)
+```
+
+# Ghi chú mã với #
+
+```{r}
+starwars %>%
+  #select(name:mass) %>% # dòng này không thực thi
+  slice(1:3) # chọn dòng
+```
+
+# Chọn các dòng theo chỉ số với slice
+
+```{r}
+nrows = nrow(starwars) # lấy số dòng của data frame
+starwars %>%
+  select(name:mass) %>%
+  slice((nrows - 3):nrows)
+```
+
+# Chọn các dòng theo điều kiện với filter
+
+```{r}
+starwars %>%
+  filter(height > 220) %>%
+  select(name, height, mass, gender, homeworld, species)
+```
+
+# Chọn các dòng theo nhiều điều kiện với filter
+
+```{r}
+starwars %>%
+  filter(
+    height > 200,
+    mass > 100
+  ) %>%
+  select(name, height, mass, gender, homeworld, species)
+```
+
+# Lọc để chọn các dòng duy nhất với distinct
+
+```{r}
+starwars %>%
+  distinct(species, homeworld) %>%
+  arrange(species, homeworld)
+```
+
+# Tạo bảng tần số với count
+
+```{r}
+starwars %>%
+  count(species, gender) %>%
+  arrange(species, gender)
+```
+
+# Tạo thêm biến mới với mutate
+
+```{r}
+starwars %>%
+  mutate(
+    bmi = mass / (height/100)^2
+  ) %>%
+  select(name, bmi, gender) %>%
+  arrange(name)
+```
+
+# Tổng hợp với summarise
+
+```{r}
+starwars %>%
+  summarise(
+    avg_height = mean(height, na.rm = T),
+    avg_mass = mean(mass, na.rm = T)
+  )
+```
+
+# Tổng hợp với summarise và group_by
+
+```{r}
+starwars %>%
+  group_by(gender) %>%
+  summarise(
+    avg_height = mean(height, na.rm = T),
+    avg_mass = mean(mass, na.rm = T),
+    num_chars = n()
+  )
+```

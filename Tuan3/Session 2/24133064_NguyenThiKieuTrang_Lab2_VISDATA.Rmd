@@ -1,0 +1,650 @@
+---
+title: "24133064_NguyenThiKieuTrang_Lab2_VISDATA"
+output: html_document
+date: "2026-05-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load-tidyverse}
+library(tidyverse)
+```
+
+# Phần 1. Với dữ liệu recent_grads
+
+```{r}
+recent_grads <-read.csv("recent_grads.csv")
+```
+
+## Q1.
+
+## Khám phá cấu trúc dữ liệu recent_grads: xem số dòng, số cột, tên biến, kiểu dữ liệu, vài dòng đầu và thống kê mô tả của các biến chính
+
+### Xem số và số cột
+
+```{r}
+dim(recent_grads)
+```
+
+### Xem tên biến
+
+```{r}
+names(recent_grads)
+```
+
+### Xem kiểu dữ liệu và cấu trúc
+
+```{r}
+str(recent_grads)
+```
+
+### Xem vài dòng đầu
+
+```{r}
+head(recent_grads, 10)
+```
+
+### Thống kê mô tả cơ bản
+
+```{r}
+summary(recent_grads)
+```
+
+### Biến phân loại
+
+```{r}
+recent_grads %>%
+  select(Major, Major_category) %>%
+  head()
+```
+
+### Biến định lượng
+
+```{r}
+recent_grads %>%
+  select(Total, Median, Unemployment_rate, ShareWomen) %>%
+  summary()
+```
+
+## Bảng/tóm tắt dữ liệu và nhận xét ngắn về biến định lượng, biến phân loại.
+
+### Bảng tóm tắt dữ liệu
+
+```{r}
+recent_grads %>%
+  select(Major, Major_category,
+         Total, Median,
+         Unemployment_rate,
+         ShareWomen) %>%
+  summary()
+```
+
+ *Nhận xét*
+ 
+Biến phân loại
+
+ - Major và Major_category là các biến phân loại.
+ - Major biểu diễn tên ngành học cụ thể.
+ - Major_category biểu diễn nhóm ngành lớn như Engineering, Business, Biology,...
+ - Các biến này dùng để phân nhóm và so sánh dữ liệu giữa các ngành.
+ 
+Biến định lượng
+
+ - Total: tổng số sinh viên của ngành.
+ - Median: thu nhập trung vị sau tốt nghiệp.
+ - Unemployment_rate: tỷ lệ thất nghiệp.
+ - ShareWomen: tỷ lệ nữ trong ngành.
+ 
+## Q2
+
+## Vẽ biểu đồ histogram của thu nhập trung vị Median. Mỗi cột thể hiện số lượng ngành nằm trong một khoảng thu nhập
+
+```{r}
+ggplot(recent_grads, aes(x = Median)) +
+  geom_histogram(
+    bins = 20,
+    fill = "skyblue",
+    color = "black"
+  ) +
+  labs(
+    title = "Histogram of Median Income",
+    x = "Median Income",
+    y = "Number of Majors"
+  ) +
+  theme_minimal()
+```
+
+## Giải thích trục x lấy từ Median và trục y là số lượng ngành được ggplot2 tự đếm
+
+ - Trục x lấy từ biến Median, thể hiện mức thu nhập trung vị của các ngành học.
+ 
+ - Trục y là số lượng ngành học trong mỗi khoảng thu nhập và được ggplot2 tự động đếm thông qua geom_histogram().
+ 
+ - Mỗi cột biểu diễn số ngành có mức thu nhập nằm trong khoảng tương ứng.
+ 
+## Q3
+
+## Thử thay đổi độ rộng khoảng của histogram và so sánh sự khác biệt.
+
+### Histogram với binwidth nhỏ
+
+```{r}
+ggplot(recent_grads, aes(x = Median)) +
+  geom_histogram(
+    binwidth = 2000,
+    fill = "skyblue",
+    color = "black"
+  ) +
+  labs(
+    title = "Histogram with Small Binwidth",
+    x = "Median Income",
+    y = "Number of Majors"
+  ) +
+  theme_minimal()
+```
+
+### Histogram với binwidth lớn
+
+```{r}
+ggplot(recent_grads, aes(x = Median)) +
+  geom_histogram(
+    binwidth = 10000,
+    fill = "orange",
+    color = "black"
+  ) +
+  labs(
+    title = "Histogram with Large Binwidth",
+    x = "Median Income",
+    y = "Number of Majors"
+  ) +
+  theme_minimal()
+```
+
+*Nhận xét*
+
+ - Khi binwidth nhỏ, histogram có nhiều cột hơn và thể hiện chi tiết phân phối dữ liệu rõ hơn.
+ 
+ - Khi binwidth lớn, số cột giảm và biểu đồ nhìn tổng quát hơn nhưng mất bớt chi tiết.
+ 
+ - Việc thay đổi binwidth ảnh hưởng trực tiếp đến cách quan sát hình dạng phân phối của dữ liệu.
+ 
+## Q4
+
+### Biểu đồ bar chart top 10 ngành
+
+```{r}
+top10_major <- recent_grads %>%
+  arrange(desc(Median)) %>%
+  slice(1:10)
+
+ggplot(top10_major, aes(x=reorder(Major, Median), y=Median))+
+  geom_col(fill="steelblue")+
+  coord_flip()+
+  labs(
+    title="Top 10 Major with Highest Median Income", 
+    x="Major",
+    y="Median Income"
+  )+
+  theme_minimal()
+```
+
+*Nhận xét ngành/nhóm ngành nào nổi bật*
+
+ - Ngành PETROLEUM ENGINEERING có thu nhập trung vị cao nhất,vượt trội so với các ngành còn lại.
+ 
+ - Phần lớn các ngành trong top 10 thuộc nhóm Engineering như:
+ 
+  + Mechanical Engineering
+  
+  + Electrical Engineering
+  
+  + Chemical Engineering
+  
+  + Nuclear Engineering
+  
+ - Ngoài nhóm kỹ thuật, ACTUARIAL SCIENCE và ASTRONOMY AND ASTROPHYSICS cũng có mức thu nhập cao.
+ 
+ - Điều này cho thấy các ngành kỹ thuật và khoa học chuyên môn cao thường có mức lương sau tốt nghiệp nổi bật hơn các nhóm ngành khác.
+
+## Q5
+
+### Vẽ scatter plot để phân tích mối quan hệ giữa tỷ lệ thất nghiệp và thu nhập trung vị.
+
+```{r}
+ggplot(data=recent_grads, aes(x=Unemployment_rate, y=Median))+
+  geom_point(color = "blue", alpha = 0.7) +
+  geom_smooth(method = "lm",
+              se = FALSE,
+              color = "red") +
+  labs(
+    title = "Scatter Plot of Unemployment Rate vs Median Income",
+    x = "Unemployment Rate",
+    y = "Median Income"
+  ) +
+  theme_minimal()
+```
+
+*Phân Tích*
+
+- Scatter plot cho thấy mối quan hệ âm nhẹ giữa tỷ lệ thất nghiệp và thu nhập trung vị.
+
+- Các ngành có tỷ lệ thất nghiệp thấp thường có xu hướng thu nhập cao hơn.
+
+- Màu sắc giúp phân biệt các nhóm ngành khác nhau, trong đó nhóm Engineering thường tập trung ở vùng thu nhập cao và thất nghiệp thấp.
+
+- Một số điểm nằm tách biệt khỏi phần lớn dữ liệu là các điểm bất thường (outlier), đại diện cho những ngành có thu nhập rất cao so với mặt bằng chung.
+
+- Dữ liệu phân tán khá rộng nên mối liên hệ giữa hai biến không quá mạnh.
+
+
+## Q5
+
+### So sánh phân phối thu nhập trung vị giữa các nhóm ngành bằng boxplot.
+
+```{r}
+ggplot(recent_grads, aes(x=Major_category,y=Median,fill=Major_category))+
+  geom_boxplot()+
+  labs(
+    title="Median Income by Major Category", 
+    x="Major Category",
+    y="Median Income"
+  )+
+  theme_minimal()+
+  theme(
+    axis.text.x=element_text(angle=90)
+  )
+```
+
+*Nhận xét*
+
+ - Boxplot cho thấy nhóm Engineering có thu nhập trung vị (median) cao hơn phần lớn các nhóm ngành khác.
+
+ - Các nhóm như Arts, Education và Humanities & Liberal Arts có median thấp hơn.
+
+ - Nhóm Engineering và Physical Sciences có độ phân tán lớn hơn, thể hiện qua hộp và râu boxplot dài hơn, cho thấy thu nhập giữa các ngành trong nhóm chênh lệch đáng kể.
+
+ - Một số điểm ngoại lệ xuất hiện với mức thu nhập rất cao, nổi bật hơn phần lớn dữ liệu còn lại.
+
+ - Biểu đồ giúp so sánh đồng thời mức thu nhập trung vị và sự phân bố thu nhập giữa các nhóm ngành.
+ 
+## Q6
+
+### Biểu đồ facet
+
+```{r}
+ggplot(recent_grads,
+       aes(x = Median)) +
+  geom_histogram(
+    bins = 15,
+    fill = "skyblue",
+    color = "black"
+  ) +
+  facet_wrap(~Major_category) +
+  labs(
+    title = "Distribution of Median Income by Major Category",
+    x = "Median Income",
+    y = "Number of Majors"
+  ) +
+  theme_minimal()
+```
+
+*Nhận xét*
+
+ - Biểu đồ facet cho thấy phân phối thu nhập trung vị khác nhau rõ rệt giữa các nhóm ngành.
+ 
+ - Nhóm Engineering và Computers & Mathematics có phân phối tập trung ở mức thu nhập cao hơn so với nhiều nhóm ngành khác.
+
+ - Các nhóm như Arts, Education và Humanities & Liberal Arts chủ yếu tập trung ở mức thu nhập thấp đến trung bình.
+ 
+ - Một số nhóm ngành có phân phối trải rộng hơn, cho thấy mức thu nhập giữa các ngành trong nhóm có sự chênh lệch đáng kể.
+ 
+ - Nhóm Engineering xuất hiện một vài ngành có thu nhập rất cao, tạo ra phần đuôi phân phối kéo dài về phía bên phải.
+ 
+ - Nhìn chung, các nhóm ngành kỹ thuật và khoa học có xu hướng thu nhập cao hơn các nhóm ngành xã hội và nghệ thuật.
+ 
+## Q8
+
+### Tạo một biểu đồ tự chọn có sử dụng ít nhất hai aesthetics ngoài x/y
+
+```{r}
+ggplot(recent_grads,
+       aes(x = ShareWomen,
+           y = Median,
+           color = Major_category,
+           size = Total,
+           alpha = Unemployment_rate)) +
+  geom_point() +
+  labs(
+    title = "Median Income by Share of Women",
+    x = "ShareWomen",
+    y = "Median Income",
+    color = "Major Category",
+    size = "Total Students",
+    alpha = "Unemployment Rate"
+  ) +
+  theme_minimal()
+```
+
+### Giải thích: biến nào được map vào color/size/alpha, thuộc tính nào là giá trị cố định.
+
+color = Major_category → màu sắc được map theo nhóm ngành để phân biệt các ngành khác nhau.
+
+size = Total → kích thước điểm được map theo tổng số sinh viên của ngành.
+
+Ngành có nhiều sinh viên hơn sẽ có điểm lớn hơn.
+alpha = Unemployment_rate → độ trong suốt của điểm được map theo tỷ lệ thất nghiệp.
+
+### Thuộc tính là giá trị cố định
+
+ - geom_point() được dùng cố định để tạo scatter plot.
+
+ - theme_minimal() là giao diện cố định của biểu đồ.
+
+ - Không đặt màu cố định vì màu đã được map theo biến Major_category.
+ 
+# Phần 2: Với dữ liệu company_sales
+
+```{r}
+company_sales <-read.csv("company_sales_data.csv")
+```
+
+## Q1
+
+### Biểu đồ đường thể hiện sự thay đổi của total_profit theo month_number.
+
+```{r}
+ggplot(company_sales, aes(x=month_number, y=total_profit))+
+  geom_line(color = "blue", linewidth = 1)+
+  labs(
+    title = "Tổng lợi nhuận theo từng tháng",
+    x = "Month Number",
+    y = "Total Profit")+
+  theme_minimal()
+```
+
+## Q2
+
+### Vẽ biểu đồ đường thể hiện tổng số sản phẩm bán ra theo tháng
+
+```{r}
+ggplot(company_sales, aes(x=month_number, y=total_units))+
+  geom_line(color="green", linewidth = 1)+
+  labs(
+    title="Tổng số sản phẩm bán ra theo tháng",
+     x = "Month Number",
+     y = "Total units")+
+  theme_minimal()
+```
+
+*Phân tích*
+
+- Doanh số bán hàng thay đổi qua các tháng trong năm.
+ 
+ - Tháng 2 có doanh số thấp nhất, khoảng 18.000 sản phẩm.
+ 
+ - Tháng 11 có doanh số cao nhất, hơn 41.000 sản phẩm.
+ 
+ - Đầu năm doanh số khá thấp và biến động nhẹ.Giữa năm bắt đầu tăng mạnh.
+ 
+ - Doanh số tăng mạnh vào giai đoạn cuối năm, đặc biệt từ tháng  10 đến tháng 11.
+
+## Q3
+
+### So sánh doanh số bán của facecream và facewash theo tháng.
+
+```{r}
+ggplot(company_sales, aes(x = month_number)) +
+  geom_line(aes(y = facecream, color = "Face Cream"),
+            linewidth = 1) +
+  geom_line(aes(y = facewash, color = "Face Wash"),
+            linewidth = 1) +
+  labs(
+    title = "So sánh doanh số Face Cream và Face Wash theo tháng",
+    x = "Month Number",
+    y = "Sales",
+    color = "Product"
+  ) +
+  theme_minimal()
+```
+
+### So sánh số lượng bán ra của hai sản phẩm
+
+ - Biểu đồ thể hiện doanh số của Face Cream và Face Wash theo từng tháng.
+ 
+ - Face Cream luôn có doanh số cao hơn Face Wash.
+ 
+ - Doanh số của cả hai sản phẩm đều biến động qua các tháng.
+ 
+ - Face Cream tăng mạnh vào giữa năm, trong khi Face Wash tăng nhẹ và ổn định hơn.
+ 
+ - Cả hai sản phẩm đều có xu hướng tăng vào cuối năm.
+
+## Q4
+
+### Biểu đồ cột thể hiện doanh số toothpaste theo tháng
+
+```{r}
+ggplot(company_sales, aes(x=month_number, y=toothpaste))+
+  geom_col()+
+  labs(
+    title="Doanh số toothpaste theo tháng",
+    x="Month Number",
+    y="Toothpaste")+
+  theme_minimal()
+```
+
+*Phân tích*
+
+ - Biểu đồ cột thể hiện doanh số toothpaste theo từng tháng. 
+ 
+ - Doanh số biến động qua các tháng nhưng có xu hướng tăng vào cuối năm.
+ 
+ - Tháng 10 có doanh số cao nhất, hơn 8.000 sản phẩm.
+ 
+ - Các tháng 3 và 5 có doanh số thấp hơn so với các tháng
+
+## Q5
+
+### Biểu đồ histogram của tổng lợi nhuận
+
+```{r}
+ggplot(company_sales, aes(x = total_profit)) +
+  geom_histogram(
+    bins = 10,
+    fill = "skyblue",
+    color = "black"
+  ) +
+  labs(
+    title = "Biểu đồ histogram của tổng lợi nhuận",
+    x = "Total Profit",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+```
+
+*Phân tích*
+
+ - Biểu đồ histogram thể hiện phân bố của tổng lợi nhuận.
+ 
+ - Phần lớn giá trị lợi nhuận tập trung trong khoảng 200.000 đến 260.000.
+ 
+ - Một số giá trị lợi nhuận cao xuất hiện ở khoảng trên 350.000.
+ 
+ - Dữ liệu có sự phân bố không đồng đều và hơi lệch về phía giá trị lớn.
+ 
+ - Một số thời điểm có lợi nhuận tăng mạnh làm xuất hiện giá trị cao bất thường.
+ 
+## Q6
+
+### Biểu đồ phân tán để kiểm tra mối quan hệ giữa tổng số sản phẩm bán ra và tổng lợi nhuận
+
+```{r}
+ggplot(company_sales,
+       aes(x = total_units,
+           y = total_profit)) +
+  geom_point(color = "blue", size = 3) +
+  labs(
+    title = "Mối quan hệ giữa tổng số sản phẩm bán ra và tổng lợi nhuận",
+    x = "Total Units",
+    y = "Total Profit"
+  ) +
+  theme_minimal()
+```
+
+*Phân tích*
+
+ - Biểu đồ scatter plot thể hiện mối quan hệ giữa tổng số sản phẩm bán ra và tổng lợi nhuận.
+ 
+ - Khi số lượng sản phẩm bán ra tăng thì tổng lợi nhuận cũng tăng.
+ 
+ - Các điểm dữ liệu có xu hướng đi lên từ trái sang phải.Điều này cho thấy hai biến có mối quan hệ thuận với nhau.
+ 
+## Q7
+
+### Biểu đồ đường so sánh doanh số của tất cả sản phẩm
+
+```{r}
+company_sales_long <- company_sales %>%
+  pivot_longer(
+    cols = c(facecream, facewash, toothpaste,
+             bathingsoap, shampoo, moisturizer),
+    names_to = "Product",
+    values_to = "Sales"
+  )
+
+ggplot(company_sales_long,
+       aes(x = month_number,
+           y = Sales,
+           color = Product)) +
+  geom_line(linewidth = 1) +
+  labs(
+    title = "So sánh doanh số của tất cả sản phẩm theo tháng",
+    x = "Month Number",
+    y = "Sales",
+    color = "Product"
+  ) +
+  theme_minimal()
+```
+
+*So sánh doanh số của tất cả sản phẩm theo tháng*
+
+ - Biểu đồ thể hiện doanh số của tất cả sản phẩm theo từng tháng.
+ 
+ - Bathingsoap có doanh số cao nhất trong hầu hết các tháng.
+ 
+ - Facewash và moisturizer có doanh số thấp và khá ổn định.
+ 
+ - Nhiều sản phẩm có xu hướng tăng doanh số vào cuối năm.
+
+## Q8
+
+###  Tổng số lượng bán ra trong cả năm cho từng sản phẩm
+
+```{r}
+product_sales <- company_sales %>%
+  summarise(
+    facecream = sum(facecream),
+    facewash = sum(facewash),
+    toothpaste = sum(toothpaste),
+    bathingsoap = sum(bathingsoap),
+    shampoo = sum(shampoo),
+    moisturizer = sum(moisturizer)
+  ) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Product",
+    values_to = "Total_Sales"
+  )
+```
+
+### Vẽ biểu đồ cột
+
+```{r}
+ggplot(product_sales,
+       aes(x = Product,
+           y = Total_Sales,
+           fill = Product)) +
+  geom_col() +
+  labs(
+    title = "Tổng doanh số cả năm theo từng sản phẩm",
+    x = "Product",
+    y = "Total Sales"
+  ) +
+  theme_minimal()
+```
+
+*Phân tích*
+
+ - Biểu đồ cột thể hiện tổng doanh số cả năm của từng sản phẩm.
+ 
+ - Bathingsoap có tổng doanh số cao nhất.
+ 
+ - Toothpaste đứng thứ hai về doanh số.
+ 
+ - Facewash và moisturizer có tổng doanh số thấp nhất.
+
+## Q9
+
+### Vẽ boxplot cho doanh số của từng sản phẩm
+
+```{r}
+ggplot(company_sales_long,
+       aes(x = Product,
+           y = Sales,
+           fill = Product)) +
+  geom_boxplot() +
+  labs(
+    title = "So sánh phân phối doanh số giữa các sản phẩm",
+    x = "Product",
+    y = "Sales"
+  ) +
+  theme_minimal()
+```
+
+*Phân tích*
+
+ - Biểu đồ boxplot thể hiện sự phân bố doanh số giữa các sản phẩm.
+
+ - Bathingsoap có doanh số cao nhất và độ biến động lớn.
+
+ - Facewash và moisturizer có doanh số thấp và khá ổn định.
+
+ - Toothpaste có doanh số tương đối cao so với các sản phẩm còn lại.
+
+ - Một số sản phẩm xuất hiện giá trị bất thường do doanh số tăng mạnh ở vài thời điểm: bathingsoap, shampoo
+
+## Q10
+
+### Biểu đồ thể hiện tỷ trọng doanh số từng sản phẩm trong cả năm
+
+```{r}
+product_sales <- product_sales %>%
+  mutate(
+    Percentage = Total_Sales / sum(Total_Sales) * 100
+  )
+
+ggplot(product_sales,
+       aes(x = "",
+           y = Percentage,
+           fill = Product)) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  labs(
+    title = "Tỷ trọng doanh số từng sản phẩm trong cả năm",
+    fill = "Product"
+  ) +
+  theme_void()
+```
+
+*Phân tích*
+
+ - Biểu đồ tròn thể hiện tỷ trọng doanh số của từng sản phẩm trong cả năm.
+ 
+ - Bathingsoap chiếm tỷ trọng lớn nhất.
+ 
+ - Toothpaste đứng thứ hai về tỷ trọng doanh số.
+ 
+ - Facewash và moisturizer chiếm tỷ trọng nhỏ nhất.

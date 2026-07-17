@@ -1,0 +1,1180 @@
+---
+title: "24133064_NguyenThiKieuTrang_LAB4_EDA2"
+output: html_document
+date: "2026-05-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+```
+
+LAB 4-XỬ LÝ DỮ LIỆU VỚI R
+
+# I. Dữ liệu: diamonds
+## Khởi động dữ liệu
+
+```{r}
+View(diamonds)
+head(diamonds)
+```
+
+## 1. Phân tích dữ liệu
+
+### 1. Mô tả cấu trúc dữ liệu
+
+#### Số dòng
+
+```{r}
+nrow(diamonds)
+```
+
+#### Số cột
+
+```{r}
+ncol(diamonds)
+```
+
+#### Kiểu dữ liệu
+
+```{r}
+str(diamonds)
+```
+### 2. Phân loại biến thành
+
+```{r}
+categorical_vars <- c("cut","color","clarity")
+continuous_vars <- c("carat","price","x","y","z","depth","table")
+
+categorical_vars
+continuous_vars
+```
+
+### 3. Tính thống kê mô tả
+
+```{r}
+summary(diamonds[,c("price","carat","x","y","z")])
+```
+### 4. Tạo bảng tần suất 
+
+```{r}
+table(diamonds$cut)
+table(diamonds$color)
+table(diamonds$clarity)
+```
+
+### 5. Đặt ít nhất 6 câu hỏi EDA
+
+#### Giá kim cương như thế nào?(variation)
+
+```{r}
+head(diamonds$price,100)
+```
+
+- Giá thường giao động trong khoảng từ 326 - 18832, trai đều mọi tầm giá khác nhau
+- Phân bố chủ yếu từ mức giá 1000 đổ lên
+- Số lượng kim cương giá cao nhiều hơn giá thấp
+
+#### Trọng lượng carat tập trung ở khoảng nào?(variation)
+
+```{r}
+head(diamonds$carat, 100)
+```
+
+- Trọng lượng carat giao động trong khoảng từ 0.2 - 5.01
+- Trọng lượng tập trung khoảng 0.2 - 1 là chủ yếu 
+- Viên có trọng lượng lớn nhất 5.01 có số lượng chỉ 1
+
+#### Loại cut nào phổ biến?(variation)
+
+```{r}
+head(diamonds$cut)
+```
+
+- Loại xuất hiện nhiều nhất là Premium
+- Loại xuất hiện ít nhất là Fair
+
+#### Kim cương nặng có giá cao hơn không ?(Covarition)
+
+```{r}
+ggplot(diamonds, aes(x=carat, y=price))+
+geom_point(alpha=0.1)
+```
+
+carat tăng -> price tăng
+
+#### Chất lượng cut có ảnh hưởng đến giá không?(Covarition)
+
+```{r}
+ggplot(diamonds, aes(x=cut, y=price))+
+geom_boxplot()
+```
+
+Giá kim cương có sự khác biệt giữa các nhóm cut. Nhóm Premium có median giá khá cao. Tuy nhiên, các nhóm cut đều xuất hiện nhiều outlier giá lớn, cho thấy dữ liệu price phân tán mạnh.
+
+#### Nhóm cut thường đi với color nào?(Covarition)
+
+```{r}
+ggplot(diamonds, aes(x=cut, y=color))+
+geom_count()
+```
+
+- Kim cương thuộc color G, cut Ideal có số lượng nhiều nhất
+- Kim cương thuộc color J, cut Fair có số lượng ít nhất
+
+## 2. Trực quan hóa dữ liệu: Thực hiện các biểu đồ
+
+### 1. Bar chart cho cut, color, clarity
+
+```{r}
+ggplot(diamonds, aes(x=cut))+
+geom_bar()
+```
+
+Nhóm Ideal số lượng nhiều nhất, nhóm Fair có số lượng ít nhất
+
+```{r}
+ggplot(diamonds, aes(x=color))+
+geom_bar()
+```
+
+Màu G có số lượng nhiều nhất, màu J có số lượng ít nhất
+
+```{r}
+ggplot(diamonds, aes(x=clarity))+
+geom_bar()
+```
+
+Clarity I1 ít nhất, claurity SI1 nhiều nhất
+
+### 2. Histogram cho carat và price. 
+
+```{r}
+ggplot(diamonds, aes(x = carat)) +
+geom_histogram(
+  fill = "skyblue",
+  color = "black",
+  binwidth = 0.1
+)
+```
+
+- Biến carat có phân bố lệch phải. 
+- Phần lớn kim cương có trọng lượng nhỏ, chủ yếu dưới 1 carat.
+- Số lượng kim cương giảm dần khi carat tăng và chỉ có một số ít viên có trọng lượng rất lớn.
+
+```{r}
+ggplot(diamonds, aes(x = price)) +
+geom_histogram(
+  fill = "green",
+  color = "black",
+  binwidth = 500
+)
+```
+
+- Histogram của price cho thấy dữ liệu phân bố lệch phải.
+- Phần lớn kim cương có giá ở mức thấp, trong khi số lượng kim cương giá cao giảm dần. 
+- Chỉ có một số ít kim cương có giá trị rất lớn.
+
+### 3. Boxplot price theo cut. 
+
+```{r}
+ggplot(diamonds, aes(x=cut, y=price))+
+  geom_boxplot()
+```
+
+- Boxplot cho thấy giá kim cương có sự khác biệt giữa các nhóm cut. 
+- Nhóm Premium có median giá khá cao và độ phân tán lớn. 
+- Tất cả các nhóm đều xuất hiện nhiều outlier giá cao, cho thấy dữ liệu price biến động mạnh.
+
+### 4. Boxplot price theo clarity.
+
+```{r}
+ggplot(diamonds, aes(x=clarity, y=price))+
+  geom_boxplot()
+```
+
+- Giá kim cương không phân bố giống nhau giữa các mức clarity. - Một số nhóm như SI2 và VS2 có median giá tương đối cao và khoảng phân bố rộng.
+- Các nhóm clarity đều xuất hiện nhiều outlier giá lớn, chứng tỏ tồn tại các viên kim cương có giá rất cao trong dữ liệu.
+
+### 5. Scatterplot giữa carat và price. 
+
+```{r}
+ggplot(diamonds, aes(x = carat, y = price)) +
+geom_point()
+```
+
+- Các điểm dữ liệu có xu hướng phân bố từ trái dưới lên phải trên, cho thấy carat và price có tương quan dương khá rõ.
+- Kim cương có trọng lượng lớn thường có giá cao hơn.
+- Dữ liệu tập trung nhiều ở vùng carat thấp, chứng tỏ phần lớn kim cương trong bộ dữ liệu có kích thước nhỏ.
+
+### 6. Scatterplot có alpha hoặc geom_bin2d() để xử lý chồng điểm.
+
+```{r}
+ggplot(diamonds, aes(x = carat, y = price)) +
+geom_point(
+  color = "blue",
+  alpha = 0.1
+)
+```
+
+- Các điểm dữ liệu phân bố theo xu hướng tăng dần từ trái sang phải, cho thấy carat và price có tương quan dương khá rõ. 
+- Việc sử dụng alpha giúp biểu đồ trực quan hơn khi số lượng quan sát lớn. 
+- Vùng dữ liệu đậm màu tập trung chủ yếu ở khu vực carat thấp, chứng tỏ đa số kim cương trong bộ dữ liệu có kích thước nhỏ và giá không quá cao.
+
+```{r}
+ggplot(diamonds, aes(x = carat, y = price)) +
+geom_bin2d()
+```
+
+### 7. Heatmap hoặc geom_count() cho quan hệ giữa cut và color
+
+```{r}
+ggplot(diamonds, aes(x = cut, y = color)) +
+geom_count()
+```
+
+- Các điểm dữ liệu phân bố theo xu hướng tăng dần từ trái sang phải, cho thấy carat và price có tương quan dương khá rõ. 
+- Việc sử dụng alpha giúp biểu đồ trực quan hơn khi số lượng quan sát lớn. 
+- Vùng dữ liệu đậm màu tập trung chủ yếu ở khu vực carat thấp, chứng tỏ đa số kim cương trong bộ dữ liệu có kích thước nhỏ và giá không quá cao.
+
+## 3. Làm sạch dữ liệu
+
+### 1. Kiểm tra outlier ở các biến x, y, z. 
+
+```{r}
+summary(diamonds[,c("x","y","z")])
+
+ggplot(diamonds,aes(y=x))+
+  geom_boxplot()+
+  labs(title="Boxplot biến x")
+ggplot(diamonds,aes(y=y))+
+  geom_boxplot()+
+  labs(title="Boxplot biến y")
+ggplot(diamonds,aes(y=z))+
+  geom_boxplot()+
+  labs(title="Boxplot biến z")
+```
+
+Kết quả thống kê mô tả và boxplot cho thấy các biến kích thước x, y, z có xuất hiện giá trị bất thường. Một số quan sát có kích thước bằng 0 hoặc quá lớn so với phần lớn dữ liệu, có thể gây ảnh hưởng đến phân tích.
+
+### 2. Lọc các quan sát có kích thước bất thường, ví dụ: ox == 0; y == 0; z == 0; y < 3 hoặc y > 20. 
+
+```{r}
+outlier_size <- diamonds%>%
+  filter(x==0|y==0|z==0|y<3|y>20)
+nrow(outlier_size)
+```
+Qua quá trình kiểm tra và lọc dữ liệu bằng hàm filter(), chúng ta phát hiện có 22 quan sát (viên kim cương) có kích thước bất thường (outliers).
+
+### 3. Tạo hai phiên bản dữ liệu: 
+
+#### Phiên bản loại bỏ outlier; 
+
+```{r}
+diamonds_remove <- diamonds %>%
+  filter(!(x==0|y==0|z==0|y<3|y>20))
+nrow(diamonds)
+nrow(diamonds_remove)
+```
+Đã loại bỏ 22 quan sát ( viên kim cương) có kích thước bất thường (outlier)
+#### Phiên bản chuyển outlier thành NA. 
+
+```{r}
+diamonds_na <- diamonds %>%
+  mutate(
+    x=ifelse(x==0,NA,x),
+    y=ifelse(y==0|y<3|y>20,NA,y),
+    z=ifelse(z==0,NA,z)
+  )
+colSums(is.na(diamonds_na))
+```
+Sau khi chuyển đổi các outlier thành giá trị khuyết (NA), hệ thống đã làm sạch thành công 3 biến kích thước mà không làm thay đổi tổng số dòng của tập dữ liệu.
+
+### 4. So sánh biểu đồ và thống kê mô tả trước/sau làm sạch.
+
+```{r}
+summary(diamonds[,c("x","y","z")])
+```
+
+```{r}
+summary(diamonds_remove[,c("x","y","z")])
+```
+
+```{r}
+summary(diamonds_na[,c("x","y","z")])
+```
+
+Sau khi làm sạch, các giá trị bất thường như kích thước bằng 0 hoặc y quá lớn đã được xử lý. Thống kê mô tả trở nên hợp lý hơn, đặc biệt là giá trị nhỏ nhất và lớn nhất của các biến kích thước.
+
+### 5. Giải thích lựa chọn xử lý cuối cùng. 
+
+Trong bài phân tích này, nhóm chọn phiên bản dữ liệu đã loại bỏ outlier. Lý do là các giá trị như x, y, z bằng 0 không phù hợp với thực tế vì kim cương không thể có kích thước bằng 0. Ngoài ra, các giá trị y quá nhỏ hoặc quá lớn có thể làm sai lệch biểu đồ và thống kê mô tả. Việc loại bỏ các quan sát bất thường giúp dữ liệu hợp lý hơn và kết quả phân tích đáng tin cậy hơn.
+
+## 4. Câu hỏi:
+
+### 1. Biến carat có quan hệ như thế nào với price?
+
+```{r}
+ggplot(diamonds, aes(x=carat, y=price))+
+  geom_point()+
+  geom_smooth()+
+  labs(
+    title="Mối quan hệ giữa carat và price",
+    x="Carat",
+    y="Price"
+  )
+```
+Biến carat và price có mối quan hệ cùng chiều. Khi carat tăng thì giá kim cương cũng có xu hướng tăng. Điều này cho thấy trọng lượng kim cương là yếu tố quan trọng ảnh hưởng đến giá.
+
+### 2. Kim cương có cut tốt hơn có luôn đắt hơn không?
+
+```{r}
+ggplot(diamonds,aes(x=cut, y=price))+
+  geom_boxplot()+
+  labs(
+    title="Giá kim cương theo chất lượng Cut",
+    x="Cut",
+    y="Price"
+  )
+```
+
+Kim cương có cut tốt hơn không phải lúc nào cũng đắt hơn. Giá còn phụ thuộc vào nhiều yếu tố khác như carat, color và clarity. Một số nhóm cut thấp hơn vẫn có giá cao nếu viên kim cương có trọng lượng lớn.
+
+### 3. Có outlier nào trong kích thước kim cương không? 
+
+```{r}
+outlier_size
+```
+
+Có xuất hiện outlier trong kích thước kim cương, đặc biệt là các quan sát có x, y hoặc z bằng 0, hoặc biến y có giá trị quá nhỏ/quá lớn. Đây là các giá trị bất thường cần được xử lý trước khi phân tích.
+
+### 4. Outlier ảnh hưởng thế nào đến phân tích? 
+
+Outlier có thể làm sai lệch kết quả thống kê mô tả, đặc biệt là giá trị trung bình, giá trị nhỏ nhất và lớn nhất. Ngoài ra, outlier cũng làm biểu đồ khó quan sát hơn vì trục bị kéo giãn bởi các giá trị quá lớn hoặc quá nhỏ.
+
+5. Nếu tư vấn cho cửa hàng, nên chú ý biến nào nhất khi định giá kim cương? 
+
+```{r}
+cor(diamonds_remove$carat, diamonds_remove$price)
+```
+carat và price có mối quan hệ tỷ lệ thuận cực kỳ chặt chẽ. Trọng lượng (carat) tăng thì giá tiền sẽ tăng theo một tỷ lệ rất đều đặn, và đây chính là yếu tố cốt lõi quyết định giá trị của viên kim cương.
+
+## 5. Sản phẩm cần nộp: 
+
+# II. Dữ liệu mpg
+
+## Tình huống: Phân tích hiệu quả nhiên liệu của các dòng xe. Một công ty tư vấn ô tô muốn đánh giá mức tiêu thụ nhiên liệu của các loại xe khác nhau để đưa ra khuyến nghị cho người tiêu dùng. Bộ dữ liệu mpg chứa thông tin về hãng xe, loại xe, dung tích động cơ, số xi-lanh, kiểu dẫn động và mức tiêu thụ nhiên liệu trong thành phố/đường cao tốc.
+
+## Yêu cầu: Sinh viên đóng vai trò là chuyên viên phân tích dữ liệu trong lĩnh vực ô tô. Nhiệm vụ là thực hiện project với câu hỏi trung tâm:“Loại xe và đặc điểm kỹ thuật nào liên quan  đến hiệu quả nhiên liệu?”
+
+## 1. Phân tích dữ liệu
+
+```{r}
+data("mpg")
+View(mpg)
+head(mpg)
+```
+
+### 1. Mô tả cấu trúc dữ liệu mpg. 
+
+#### Số dòng
+
+```{r}
+nrow(mpg)
+```
+
+#### Số cột
+
+```{r}
+ncol(mpg)
+```
+
+#### Kiểu dữ liệu
+
+```{r}
+str(mpg)
+```
+
+Bộ dữ liệu mpg gồm nhiều biến định tính và định lượng dùng để mô tả đặc điểm xe và mức tiêu thụ nhiên liệu.
+
+### 2. Phân loại biến: 
+
+#### biến phân loại: manufacturer, model, class, drv, fl, trans;
+
+```{r}
+categortical_vars <- c("manufacturer", "model", "class", "drv","fl","trans")
+categortical_vars
+```
+
+#### biến định lượng: displ, year, cyl, cty, hwy.
+
+```{r}
+continous_vars <- c("displ", "year", "cyl", "cty","hwy")
+continous_vars
+```
+
+### 3. Tính thống kê mô tả cho cty, hwy, displ. 
+
+```{r}
+summary(mpg[,c("cty","hwy","displ")])
+```
+Dữ liệu cho thấy mức tiêu thụ nhiên liệu và dung tích động cơ có độ phân tán tương đối lớn giữa các loại xe.
+
+### 4. Tạo bảng tóm tắt hwy theo class. 
+
+```{r}
+mpg %>%
+  group_by(class)%>%
+  summarise(
+    mean_hwy=mean(hwy),
+    min_hwy=min(hwy),
+    max_hwy=max(hwy)
+  )
+```
+
+### 5. Tạo bảng tóm tắt hwy theo drv. 
+
+```{r}
+mpg %>%
+  group_by(drv)%>%
+  summarise(
+    mean_hwy=mean(hwy),
+    min_hwy=min(hwy),
+    max_hwy=max(hwy)
+  )
+```
+
+### 6. Đặt ít nhất 5 câu hỏi EDA.
+
+#### 1.Loại xe nào có hwy cao nhất?
+
+```{r}
+ggplot(mpg, aes(x=class, y=hwy))+
+  geom_boxplot()+
+  labs(
+    title="Loại xe có hwy cao nhất",
+    x="Class",
+    y="hwy"
+  )
+
+```
+
+Loại xe Compact (xe cỡ nhỏ) và Subcompact (xe bình dân cỡ nhỏ) có hwy cao nhất (tiết kiệm xăng nhất). Ngược lại, xe Pickup (xe bán tải) và SUV có hwy thấp nhất.
+
+#### 2.Xe có dung tích động cơ lớn có tiêu hao nhiên liệu nhiều hơn không?
+
+```{r}
+ggplot(mpg, aes(x=displ,y=hwy))+
+  geom_point()+
+  geom_smooth()+
+  labs(
+    title="Mối quan hệ giữa dung tích động cơ và tiêu hao năng lượng",
+    x="Displ",
+    y="hwy"
+  )
+```
+
+Nhìn vào đường xu hướng màu xanh, khi dung tích động cơ (Displ) tăng từ 2 lên 5 lít, chỉ số hwy giảm mạnh từ trên 30 xuống dưới 20. Chỉ số hwy thấp nghĩa là xe chạy được ít dặm hơn trên một đơn vị xăng, chứng tỏ xe tốn xăng hơn (tiêu hao nhiên liệu nhiều hơn).
+
+#### 3.Dẫn động nào tiết kiệm nhiên liệu nhất?
+
+```{r}
+ggplot(mpg, aes(x=drv, y=hwy))+
+  geom_boxplot()+
+  labs(
+    title="Dẫn động tiết kiệm nhiên liệu nhất",
+    x="drv",
+    y="hwy"
+  )
+```
+
+Dẫn động cầu trước (f - front-wheel drive) là tiết kiệm nhiên liệu nhất (hộp biểu đồ của f nằm cao nhất trên trục hwy). Dẫn động 4 bánh (4) và cầu sau (r) tốn xăng hơn.
+
+#### 4.Loại xe nào phổ biến nhất?
+
+```{r}
+ggplot(mpg, aes(x=class))+
+  geom_bar()+
+  labs(
+    title="Loại xe phổ biến nhất",
+  )
+```
+
+Loại xe phổ biến nhất là SUV, theo sau đó là hai dòng Compact và Midsize.
+
+#### 5.Có mối quan hệ giữa displ và hwy không?
+
+```{r}
+ggplot(mpg, aes(x=displ,y=hwy))+
+  geom_point()+
+  geom_smooth()+
+  labs(
+    title="Mối quan hệ giữa dung tích động cơ và tiêu hao năng lượng",
+    x="Displ",
+    y="hwy"
+  )
+cor(mpg$displ, mpg$hwy)
+```
+
+CÓ. Giữa displ và hwy có mối quan hệ tỷ lệ nghịch (tương quan âm) rất rõ rệt.Hệ số tương quan sẽ ra số âm (khoảng -0.76226), nghĩa là động cơ xe càng to (displ tăng) thì số dặm chạy được trên 1 gallon xăng càng giảm (hwy giảm).
+
+## 2. Trực quan hóa dữ liệu
+
+### 1. Bar chart số lượng xe theo class. 
+
+```{r}
+ggplot(mpg, aes(x=class))+
+  geom_bar()+
+  labs(
+    title="Biểu đồ số lượng xe theo Class"
+  )
+```
+
+Loại xe phổ biến nhất là SUV, theo sau đó là hai dòng Compact và Midsize. Loại ít phổ biến nhất là 2seater.
+
+### 2. Boxplot hwy theo class.
+
+```{r}
+ggplot(mpg, aes(x=class, y=hwy))+
+  geom_boxplot()+
+  labs(
+    title="Biểu đồ hwy theo class"
+  )
+```
+
+Loại xe có chỉ số hwy cao nhất (tiết kiệm nhiên liệu nhất) là subcompact và compact. Loại xe có chỉ số hwy thấp nhất (tốn nhiên liệu nhất) là pickup và suv.
+Biểu đồ hộp cho thấy kích thước xe có ảnh hưởng rõ rệt đến mức tiêu hao nhiên liệu. Xe càng nhỏ gọn thì càng chạy được nhiều dặm trên một gallon xăng và ngược lại.
+
+### 3. Boxplot cty theo class. 
+
+```{r}
+ggplot(mpg, aes(x=class, y=cty))+
+  geom_boxplot()+
+  labs(
+    title="Biểu đồ cty theo class"
+  )
+```
+
+Loại xe có chỉ số cty cao nhất (tiết kiệm nhất trong thành phố) là subcompact, và thấp nhất (tốn xăng nhất) là pickup.
+So với biểu đồ đường trường (hwy), chỉ số tiêu hao nhiên liệu trong thành phố (cty) của tất cả các dòng xe đều thấp hơn rõ rệt. Điều này hoàn toàn phù hợp với thực tế do điều kiện giao thông đô thị thường xuyên gây hao tốn nhiên liệu hơn.
+
+### 4. Boxplot hwy theo drv.
+
+```{r}
+ggplot(mpg, aes(x=drv, y=hwy))+
+  geom_boxplot()+
+  labs(
+    title="Biểu đồ hwy theo drv"
+  )
+```
+
+Xe dẫn động cầu trước (f) có chỉ số hwy cao nhất, tức là tiết kiệm nhiên liệu nhất. Xe dẫn động 4 bánh (4) có chỉ số hwy thấp nhất, tức là tiêu hao nhiên liệu nhiều nhất.
+Hệ thống dẫn động có ảnh hưởng rõ rệt đến mức tiêu hao xăng. Xe cầu trước (f) tối ưu lượng xăng tốt nhất so với xe cầu sau (r) và xe 2 cầu (4).
+
+### 5. Scatterplot giữa displ và hwy. 
+
+```{r}
+ggplot(mpg, aes(x=displ, y=hwy))+
+  geom_point()+
+  labs(
+    title="Biểu đồ phân tán của displ và hwy",
+    x="displ",
+    y="hwy"
+  )
+```
+
+Các chấm tròn đen (hwy) có xu hướng đi xuống theo chiều tăng của displ nên hai đại lượng này tỷ lệ nghịch với nhau - động cơ càng to thì càng tốn xăng.
+
+### 6. Scatterplot giữa displ và cty. 
+
+```{r}
+ggplot(mpg, aes(x=displ, y=cty))+
+  geom_point()+
+  labs(
+    title="Biểu đồ phân tán của displ và cty",
+    x="displ",
+    y="cty"
+  )
+```
+
+Các chấm tròn đen (cty) có xu hướng đi xuống theo chiều tăng của displ nên hai đại lượng này tỷ lệ nghịch với nhau - chạy trong thành phố thì động cơ càng to cũng càng tốn xăng.
+
+### 7. Scatterplot displ – hwy, tô màu theo class. 
+
+```{r}
+ggplot(mpg, aes(x=displ, y=hwy, color=class))+
+  geom_point()+
+  labs(
+    title="Biểu đồ phân tán của displ và hwy",
+    x="displ",
+    y="hwy"
+  )
+```
+
+Biểu đồ cho thấy sự phân cụm rõ rệt theo loại xe. Xe nhóm compact và subcompact (màu vàng, tím) tập trung ở vùng động cơ nhỏ và rất tiết kiệm xăng. Ngược lại, xe nhóm suv và pickup (màu hồng, xanh dương) tập trung ở vùng động cơ lớn và tiêu hao nhiên liệu nhiều.
+
+### 8. Facet theo drv hoặc class. 
+
+```{r}
+ggplot(mpg, aes(x=displ, y=hwy))+
+  geom_point()+
+  facet_wrap(~drv)+
+  labs(
+    title="Biểu đồ facet theo hệ thống dẫn động(drv)",
+    x="displ",
+    y="hwy"
+  )
+```
+
+ - Nhóm xe cầu trước (f) tập trung hoàn toàn ở phân khúc động cơ nhỏ (nhỏ hơn 4 lít) và đạt hiệu suất tiết kiệm xăng cao nhất.
+ - Nhóm xe cầu sau (r) chỉ xuất hiện ở phân khúc động cơ lớn (từ 4 đến 7 lít) và tiêu hao nhiều nhiên liệu.
+- Nhóm xe 4 bánh (4) trải dài ở nhiều mức động cơ nhưng có xu hướng tốn xăng rõ rệt khi dung tích động cơ tăng lên.
+
+## 3. Làm sạch dữ liệu
+
+### 1. Kiểm tra missing values trong toàn bộ dữ liệu.
+
+```{r}
+colSums(is.na(mpg))
+```
+Dữ liệu không có giá trị thiếu nên không cần xử lý.
+
+### 2. Kiểm tra các nhóm class có số lượng quan sát quá nhỏ.
+
+```{r}
+table(mpg$class)
+```
+
+### 3. Kiểm tra giá trị bất thường: hwy > 40; hwy < 15; cty > hwy; displ quá lớn hoặc quá nhỏ. 
+
+```{r}
+outlier<- mpg %>%
+  filter(hwy>40|hwy<15|cty>hwy|displ>7|displ<1
+)
+outlier
+```
+
+### 4. Đề xuất cách xử lý các quan sát bất thường.
+
+ - Các quan sát bất thường cần được kiểm tra để xác định có phải lỗi dữ liệu hay không. 
+ - Nếu các giá trị bất thường xuất phát từ lỗi nhập liệu thì nên loại bỏ hoặc thay thế bằng giá trị phù hợp.
+ - Nếu dữ liệu phản ánh đúng đặc điểm thực tế của xe thì nên giữ lại để đảm bảo tính đại diện của dữ liệu.
+ 
+### 5. Giải thích có nên loại bỏ outlier hay giữ lại.
+
+Trong bộ dữ liệu mpg, các giá trị bất thường không nhất thiết là lỗi mà có thể phản ánh đặc điểm thực tế của một số loại xe như xe thể thao, SUV hoặc xe động cơ lớn. Vì vậy, quyết định giữ lại các outlier để đảm bảo dữ liệu phản ánh đúng thực tế. Chỉ loại bỏ khi xác định chắc chắn đó là lỗi dữ liệu.
+
+## 4. Câu hỏi
+
+### 1. Loại xe nào tiết kiệm nhiên liệu đường cao tốc nhất? 
+
+```{r}
+mpg%>%
+  group_by(class)%>%
+  summarise(mean_hwy=mean(hwy))%>%
+  arrange(desc(mean_hwy))
+```
+Nhóm xe compact có giá trị trung bình hwy cao nhất là nhóm tiết kiệm nhiên liệu đường cao tốc tốt nhất. Các dòng xe pickup có mức tiêu hao nhiên liệu thấp nhất.
+
+### 2. Dung tích động cơ lớn có làm giảm hwy không? 
+
+```{r}
+ggplot(mpg, aes(x=displ, y=hwy))+
+  geom_point()+
+  labs(
+    title="Biểu đồ phân tán của displ và hwy",
+    x="displ",
+    y="hwy"
+  )
+```
+
+Biểu đồ cho thấy khi dung tích động cơ (displ) tăng thì mức tiết kiệm nhiên liệu trên đường cao tốc (hwy) có xu hướng giảm. Điều này cho thấy xe có động cơ lớn thường tiêu thụ nhiên liệu nhiều hơn.
+
+### 3. Xe dẫn động nào có hiệu quả nhiên liệu tốt hơn? 
+
+```{r}
+ggplot(mpg, aes(x=drv, y=hwy))+
+  geom_boxplot()+
+  labs(
+    title="Biểu đồ hwy theo drv"
+  )
+```
+
+Xe dẫn động cầu trước (f) có hiệu quả nhiên liệu tốt hơn so với xe dẫn động bốn bánh (4) hoặc cầu sau (r). Điều này có thể do các xe cầu trước thường nhẹ và có động cơ nhỏ hơn.
+
+### 4. Có nhóm xe nào đi ngược xu hướng chung không? 
+
+```{r}
+ggplot(mpg, aes(x=displ, y=hwy, color=class))+
+  geom_point()+
+  labs(
+    title="Biểu đồ phân tán của displ và hwy",
+    x="displ",
+    y="hwy"
+  )
+```
+
+Xu hướng chung cho thấy dung tích động cơ tăng thì hwy giảm. Tuy nhiên vẫn tồn tại một số xe có dung tích động cơ khá lớn nhưng hwy vẫn cao hoặc xe động cơ nhỏ nhưng hwy thấp. Đây là các nhóm đi ngược xu hướng chung.(2seater, midsize)
+
+### 5. Nếu người tiêu dùng ưu tiên tiết kiệm nhiên liệu, nên chọn nhóm xe nào?
+
+Nếu người tiêu dùng ưu tiên tiết kiệm nhiên liệu thì nên chọn các dòng xe nhỏ như compact hoặc subcompact, đặc biệt là xe dẫn động cầu trước (f). Các dòng xe này thường có động cơ nhỏ hơn và mức tiêu thụ nhiên liệu thấp hơn so với SUV hoặc xe động cơ lớn.
+
+*Khuyến nghị cho người tiêu dùng:*
+
+Nếu mục tiêu là tiết kiệm nhiên liệu, người tiêu dùng nên ưu tiên các dòng xe nhỏ như compact hoặc subcompact vì chúng thường có động cơ nhỏ hơn và mức tiêu thụ nhiên liệu thấp hơn. Xe dẫn động cầu trước (f) cũng là lựa chọn hợp lý vì thường nhẹ và hiệu quả nhiên liệu tốt hơn so với xe dẫn động cầu sau (r) hoặc 4 bánh (4). Ngoài ra, khi chọn xe, nên kết hợp xem xét dung tích động cơ, loại dẫn động và trọng lượng xe để đảm bảo lựa chọn phù hợp với nhu cầu di chuyển và tiết kiệm chi phí nhiên liệu lâu dài.
+
+# III.Dữ liệu: starwars
+
+## Một nhóm sản xuất nội dung muốn phân tích đặc điểm nhân vật trong Star Wars để xây dựng infographic về chiều cao, cân nặng, giới tính, loài và đặc điểm ngoại hình của các nhân vật.
+
+## Yêu cầu: Sinh viên đóng vai trò là data analyst cho nhóm truyền thông dữ liệu.
+
+## 1. Phân tích dữ liệu
+
+```{r}
+data("starwars")
+
+```
+
+### 1. Mô tả cấu trúc dữ liệu starwars. 
+
+#### Số dòng
+
+```{r}
+nrow(starwars)
+```
+
+#### Số cột
+
+```{r}
+ncol(starwars)
+```
+
+#### Kiểu dữ liệu
+
+```{r}
+str(starwars)
+```
+
+Dữ liệu starwars gồm thông tin về các nhân vật như chiều cao, cân nặng, năm sinh, giới tính, loài, quê nhà và đặc điểm ngoại hình.
+
+### 2. Xác định biến định lượng: height; mass; birth_year. 
+
+```{r}
+quantitative_vars <- c("height", "mass", "birth_yea")
+quantitative_vars
+```
+
+### 3. Xác định biến phân loại: sex; gender; species; homeworld; hair_color; eye_color; skin_color. 
+
+```{r}
+categorical3_vars <- c("sex","gender","species","homeworld"," hair_color","eye_color","skin_color")
+categorical3_vars
+```
+
+### 4. Kiểm tra missing values trong từng biến. 
+
+```{r}
+colSums(is.na(starwars))
+```
+```{r}
+starwars %>%
+  summarise(
+    missing_height = sum(is.na(height)),
+    missing_mass = sum(is.na(mass)),
+    missing_birth_year = sum(is.na(birth_year)),
+    missing_gender = sum(is.na(gender)),
+    missing_species = sum(is.na(species))
+  )
+```
+### 5. Tạo bảng tần suất cho gender, species, hair_color. 
+
+```{r}
+table(starwars$gender)
+table(starwars$species)
+table(starwars$hair_color)
+starwars %>%
+  count(gender, sort = TRUE)
+
+starwars %>%
+  count(species, sort = TRUE)
+
+starwars %>%
+  count(hair_color, sort = TRUE)
+```
+
+### 6. Tính thống kê mô tả cho height và mass. 
+
+```{r}
+summary(starwars[, c("height", "mass")])
+```
+
+## 2. Trực quan hóa dữ liệu
+
+###1. Histogram cho height. 
+
+```{r}
+ggplot(starwars, aes(x = height)) +
+  geom_histogram() +
+  labs(
+    title = "Phân bố chiều cao nhân vật",
+    x = "Chiều cao",
+    y = "Số lượng"
+  )
+```
+Biểu đồ histogram cho thấy dữ liệu chiều cao phân bố theo dạng chuẩn (hình chuông) nhưng có xu hướng lệch nhẹ và xuất hiện các giá trị dị biệt ở cả hai phía.
+Chiều cao của các nhân vật tập trung phổ biến nhất ở khoảng 170cm – 190cm (với đỉnh cao nhất đạt trên 15 nhân vật ở mốc ~180cm).
+Xuất hiện một nhóm nhỏ nhân vật có chiều cao cực thấp (dưới 100cm) và một nhân vật cá biệt có chiều cao vượt trội (trên 250cm).
+
+### 2. Histogram cho mass. 
+
+```{r}
+ggplot(starwars, aes(x = mass)) +
+  geom_histogram() +
+  xlim(0,200)+
+  labs(
+    title = "Phân bố cân nặng nhân vật",
+    x = "Cân nặng",
+    y = "Số lượng"
+  )
+```
+
+Đỉnh tập trung đông nhất: Cân nặng của các nhân vật tập trung nhiều nhất ở khoảng 70kg – 90kg (với cột cao nhất đạt gần 13 nhân vật ở mốc ~80kg, đây là mức cân nặng chuẩn của người trưởng thành).
+Có một nhóm nhỏ nhân vật nhẹ cân tập trung ở mốc 50kg (như các robot nhỏ hoặc nhân vật nữ).
+Đa số các nhân vật có cân nặng thực tế nằm trong khoảng từ 50kg đến 100kg.
+
+### 3. Density plot cho height. 
+
+```{r}
+ggplot(starwars, aes(x = height)) +
+  geom_density(na.rm = TRUE) +
+  labs(
+    title = "Density plot chiều cao",
+    x = "Chiều cao",
+    y = "Mật độ"
+  )
+```
+
+Biểu đồ mật độ cho thấy dữ liệu chiều cao có phân phối đơn đỉnh rõ rệt ở trung tâm, đi kèm hai cụm nhỏ ở hai đầu rìa dữ liệu.
+Mật độ nhân vật tập trung cao nhất và dày đặc nhất xung quanh mốc 180cm. Phản ánh rõ sự xuất hiện của hai nhóm nhân vật đặc biệt trong tập dữ liệu: nhóm nhân vật tí hon (dưới 100cm) và nhóm nhân vật khổng lồ (trên 220cm).
+
+### 4. Boxplot cho height.
+
+```{r}
+ggplot(starwars, aes(y = height)) +
+  geom_boxplot() +
+  labs(
+    title = "Boxplot chiều cao",
+    y = "Chiều cao"
+  )
+```
+
+Chiều cao trung vị của các nhân vật đạt khoảng 180 cm. Phần lớn các nhân vật (50% dữ liệu ở giữa) có chiều cao dao động ổn định trong khoảng từ 167 cm đến 191 cm.
+Biểu đồ hộp ghi nhận rất nhiều giá trị dị biệt xuất hiện ở cả hai phía: Nhóm dị biệt phía trên đại diện cho các nhân vật có chiều cao đột biến (trên 225 cm), Nhóm dị biệt phía dưới đại diện cho các nhân vật có kích thước siêu nhỏ (dưới 125 cm).
+
+### 5. Boxplot cho mass.
+
+```{r}
+ggplot(starwars, aes(y = mass)) +
+  geom_boxplot() +
+  ylim(0, 160) +
+  labs(
+    title = "Boxplot cân nặng",
+    y = "Cân nặng"
+  )
+```
+
+Tập dữ liệu xuất hiện một giá trị dị biệt cực đại (extreme outlier) đạt gần 1,400 kg (nhân vật Jabba the Hutt), làm nén toàn bộ phần hộp dữ liệu còn lại sát về mốc 0.
+Cân nặng trung vị của các nhân vật nằm ở mức khoảng 80 kg.
+Phần lớn các nhân vật (50% dữ liệu ở giữa) có cân nặng dao động ổn định trong khoảng từ 55 kg đến 90 kg.
+Xuất hiện một vài dấu chấm tròn (outliers) khác đại diện cho nhóm nhân vật nặng ký (từ 110 kg đến dưới 160 kg).
+
+### 6. Bar chart cho gender. 
+
+```{r}
+ggplot(starwars, aes(x = gender)) +
+  geom_bar() +
+  labs(
+    title = "Số lượng nhân vật theo gender",
+    x = "Gender",
+    y = "Số lượng"
+  )
+```
+
+Masculine (nam giới) chiếm số lượng nhiều nhấ, Vọt lên mức gần 70 nhân vật.
+Feminine ( nữ giới) nằm ở mức gần 20 nhân vật
+Một số ít nhân vật còn lại không xác định được giới tính (bị khuyết dữ liệu - NA).
+
+### 7. Bar chart cho species, chỉ giữ nhóm có từ 2 quan sát trở lên. 
+
+```{r}
+species_2 <- starwars %>%
+  count(species) %>%
+  filter(n >= 2)
+
+ggplot(species_2, aes(x = reorder(species, n), y = n)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Số lượng nhân vật theo species từ 2 quan sát trở lên",
+    x = "Species",
+    y = "Số lượng"
+  )
+```
+
+Biểu đồ sau khi lọc các chủng tộc có từ 2 cá thể trở lên cho thấy sự chênh lệch rất lớn về mặt phân bố loài trong vũ trụ Star Wars.
+Chủng tộc con người (Human) chiếm số lượng đông đảo và áp đảo nhất với 35 nhân vật.
+Người máy (Droid) là nhóm phổ biến thứ hai nhưng số lượng ít hơn nhiều (6 nhân vật).
+Các chủng tộc còn lại như Gungan, Wookiee, Zabrak... xuất hiện với số lượng rất khiêm tốn, chỉ từ 2 đến 3 cá thể cho mỗi loài.
+Tập dữ liệu chủ yếu tập trung vào các nhân vật thuộc chủng tộc con người, các loài sinh vật và quái vật ngoài hành tinh đóng vai trò đa dạng sinh học bổ trợ với số lượng nhỏ.
+
+### 8. Boxplot height theo gender. 
+
+```{r}
+ggplot(starwars, aes(x = gender, y = height)) +
+  geom_boxplot() +
+  labs(
+    title = "Chiều cao theo gender",
+    x = "Gender",
+    y = "Chiều cao"
+  )
+```
+
+Biểu đồ hộp cho thấy có sự chênh lệch về chiều cao giữa các nhóm giới tính.
+Nhóm nhân vật nam (masculine) có chiều cao trung vị lớn nhất (khoảng 184 cm), cao hơn rõ rệt so với nhóm nhân vật nữ (feminine - khoảng 168 cm).
+Nhóm masculine cũng là nhóm có nhiều giá trị dị biệt (outliers) nhất, xuất hiện ở cả hai cực (siêu cao trên 250 cm và siêu thấp dưới 100 cm).
+
+### 9. Faceted histogram của height theo gender. 
+
+```{r}
+ggplot(starwars, aes(x = height)) +
+  geom_histogram() +
+  facet_wrap(~ gender) +
+  labs(
+    title = "Phân bố chiều cao tách theo giới tính",
+    x = "Chiều cao (cm)",
+    y = "Số lượng"
+  )
+```
+
+Biểu đồ Facet Histogram cho thấy rõ sự khác biệt về cả số lượng lẫn hình dáng phân bố chiều cao giữa hai giới tính.
+Nhóm masculine chiếm số lượng áp đảo với ngọn núi dữ liệu cao và rộng, tập trung mạnh ở khoảng 170cm – 190cm. Nhóm này cũng sở hữu dải chiều cao trải dài nhất, bao trọn các cá thể siêu lùn và khổng lồ.
+Nhóm feminine có số lượng ít hơn nhiều, phân bố hẹp hơn và tập trung ở phân khúc chiều cao thấp hơn, phổ biến từ 160cm – 175cm.
+
+### 10.Scatterplot giữa height và mass. 
+
+```{r}
+ggplot(starwars, aes(x = height, y = mass)) +
+  geom_point() +
+  ylim(0, 160) +
+  labs(
+    title = "Mối quan hệ giữa chiều cao và cân nặng",
+    x = "Chiều cao",
+    y = "Cân nặng"
+  )
+```
+
+Biểu đồ phân tán (đã giới hạn cân nặng dưới 160kg để loại bỏ outlier) cho thấy các chấm dữ liệu có xu hướng phân bố dốc lên rõ rệt từ trái sang phải.
+Giữa height (chiều cao) và mass (cân nặng) có mối quan hệ tương quan thuận mạnh mẽ. Nhân vật có chiều cao càng lớn thì cân nặng sẽ càng cao và ngược lại. Xu hướng này diễn ra rất đều đặn đối với đa số các nhân vật trong tập dữ liệu.
+
+## 3. Làm sạch dữ liệu
+
+### 1. Kiểm tra missing values trong height, mass, gender, species.
+
+```{r}
+starwars%>%
+  summarise(
+    missing_height =sum(is.na(height)),
+    missing_mass=sum(is.na(mass)),
+    missing_gender =sum(is.na(gender)),
+    missing_species=sum(is.na(species))
+  )
+```
+
+### 2. Tạo bảng số lượng missing values cho từng biến.
+
+```{r}
+missing_table <- data.frame(
+  variable = names(starwars),
+  missing_count=colSums(is.na(starwars))
+)
+missing_table
+```
+
+### 3. Phát hiện outlier trong mass, đặc biệt các quan sát có mass > 500. 
+
+```{r}
+mass_outlier <- starwars%>%
+  filter(mass>500)
+mass_outlier
+```
+
+### 4. Vẽ scatterplot height – mass trước và sau khi loại outlier. 
+
+#### Trước khi loại outlier
+
+```{r}
+ggplot(starwars, aes(x = height, y = mass)) +
+  geom_point() +
+  ylim(0,180)+
+  labs(
+    title = "Height và mass trước khi loại outlier",
+    x = "Height",
+    y = "Mass"
+  )
+```
+
+#### Sau khi loại outlier
+
+```{r}
+starwars_no_outlier <- starwars %>%
+  filter(is.na(mass) | mass <= 500)
+
+ggplot(starwars_no_outlier, aes(x = height, y = mass)) +
+  geom_point(na.rm = TRUE) +
+  labs(
+    title = "Height và mass sau khi loại outlier mass > 500",
+    x = "Height",
+    y = "Mass"
+  )
+```
+
+Cả hai biểu đồ "Trước khi loại outlier" (nhưng có giới hạn trục hiển thị) và "Sau khi loại outlier mass > 500" đều cho ra phân bố các chấm tròn giống nhau. Điều này cho thấy việc sử dụng hàm giới hạn vùng nhìn (ylim) hoặc chủ động lọc bỏ dữ liệu dị biệt (filter(mass <= 500)) đều mang lại một hiệu quả trực quan tương đương.
+Việc loại bỏ/gạt bỏ giá trị dị biệt cực đại (Jabba the Hutt > 1300kg) giúp thang đo của trục Cân nặng (Mass) quay về khoảng tuyến tính hợp lý (từ 0 đến 160 kg).
+Nhân vật có chiều cao càng lớn thì cân nặng có xu hướng tăng theo một tỷ lệ rất đồng đều và logic.
+
+### 5. Gộp nhóm hiếm trong hair_color hoặc species thành "Other". 
+
+```{r}
+starwars_grouped <- starwars %>%
+  add_count(hair_color, name = "hair_count") %>%
+  mutate(
+    hair_color_grouped = ifelse(hair_count < 2 | is.na(hair_color), "Other", hair_color)
+  )
+```
+
+### 6. So sánh biểu đồ trước/sau khi gộp nhóm. 
+
+#### Trước khi gộp
+
+```{r}
+ggplot(starwars, aes(x = hair_color)) +
+  geom_bar() +
+  coord_flip() +
+  labs(
+    title = "Hair color trước khi gộp nhóm",
+    x = "Hair color",
+    y = "Số lượng"
+  )
+```
+
+#### Sau khi gộp
+
+```{r}
+ggplot(starwars_grouped, aes(x = hair_color_grouped)) +
+  geom_bar() +
+  coord_flip() +
+  labs(
+    title = "Hair color sau khi gộp nhóm hiếm",
+    x = "Hair color",
+    y = "Số lượng"
+  )
+```
+
+Biểu đồ sau khi gộp nhóm hiếm (hair_count < 2 hoặc NA) gọn gàng và cô đọng hơn hẳn biểu đồ gốc. Việc loại bỏ các nhóm dữ liệu vụn vặt giúp làm giảm nhiễu cho biểu đồ.
+Nhóm nhân vật không có tóc (none) chiếm số lượng áp đảo lớn nhất với gần 38 nhân vật.
+Trong số các nhân vật có tóc, tóc nâu (brown) và tóc đen (black) là hai màu tóc phổ biến nhất.
+Các màu tóc đặc biệt hiếm gặp và các trường hợp khuyết dữ liệu đã được xử lý và gom gọn thành công vào nhóm Other (chiếm 11 nhân vật).
+
+## 4. Câu hỏi
+
+### 1. Chiều cao nhân vật phân phối như thế nào? 
+
+```{r}
+ggplot(starwars, aes(x = height)) +
+  geom_histogram() +
+  labs(
+    title = "Phân bố chiều cao nhân vật",
+    x = "Chiều cao",
+    y = "Số lượng"
+  )
+```
+
+Biểu đồ histogram cho thấy dữ liệu chiều cao phân bố theo dạng chuẩn (hình chuông) nhưng có xu hướng lệch nhẹ và xuất hiện các giá trị dị biệt ở cả hai phía.
+Chiều cao của các nhân vật tập trung phổ biến nhất ở khoảng 170cm – 190cm (với đỉnh cao nhất đạt trên 15 nhân vật ở mốc ~180cm).
+Xuất hiện một nhóm nhỏ nhân vật có chiều cao cực thấp (dưới 100cm) và một nhân vật cá biệt có chiều cao vượt trội (trên 250cm).
+Chiều cao nhân vật tập trung chủ yếu ở khoảng trung bình, phần lớn nằm quanh nhóm chiều cao phổ biến của con người. Tuy nhiên vẫn có một số nhân vật có chiều cao rất thấp hoặc rất cao, làm phân phối có xuất hiện giá trị ngoại lệ.
+
+### 2. Cân nặng có bị ảnh hưởng mạnh bởi outlier không?
+
+####  Hình 1: Biểu đồ bị ảnh hưởng bởi Outlier (Để thang đo tự nhiên)
+
+```{r}
+p1 <- ggplot(starwars, aes(y = mass)) +
+  geom_boxplot() +
+  labs(
+    title = "Thang đo bị outlier kéo dãn",
+    y = "Cân nặng gốc (kg)"
+  ) +
+  theme_minimal()
+p1
+```
+
+#### Hình 2: Biểu đồ sau khi giới hạn trục để nhìn rõ dữ liệu số đông
+
+```{r}
+p2 <- ggplot(starwars, aes(y = mass)) +
+  geom_boxplot() +
+  ylim(0, 160) + 
+  labs(
+    title = "Khi giới hạn trục (Zoom cận cảnh)",
+    y = "Cân nặng phóng to (kg)"
+  ) +
+  theme_minimal()
+p2
+```
+
+Biểu đồ đối chiếu cho thấy biến cân nặng bị ảnh hưởng vô cùng nghiêm trọng bởi giá trị dị biệt (outlier).
+Ở biểu đồ gốc (Hình 1), sự xuất hiện của một cá thể có cân nặng đột biến (~1,358 kg) đã ép toàn bộ hộp dữ liệu của các nhân vật còn lại bẹp dí sát trục hoành, khiến người xem không thể đọc được các thông tin quan trọng như trung vị hay khoảng tứ phân vị.
+Ở biểu đồ đã xử lý vùng nhìn (Hình 2), khi giới hạn trục về mức 0 - 160 kg, cấu trúc phân bổ thực tế mới được lộ diện rõ ràng (trung vị khoảng 80 kg).
+Biến mass bị nhiễu và ảnh hưởng mạnh bởi outlier nặng ký. Trong các phân tích thống kê tiếp theo, bắt buộc phải có biện pháp loại bỏ hoặc xử lý outlier này để tránh làm lệch kết quả mô hình.
+
+### 3. Nhóm gender nào chiếm đa số? 
+
+```{r}
+starwars %>%
+  count(gender, sort = TRUE)
+```
+Nhóm masculine có số lượng quan sát cao nhất là nhóm chiếm đa số trong dữ liệu.
+
+### 4. Có sự khác biệt chiều cao giữa các nhóm gender không? 
+
+```{r}
+ggplot(starwars, aes(x = height)) +
+  geom_histogram() +
+  facet_wrap(~ gender) +
+  labs(
+    title = "Phân bố chiều cao tách theo giới tính",
+    x = "Chiều cao (cm)",
+    y = "Số lượng"
+  )
+```
+
+Biểu đồ Facet Histogram cho thấy rõ sự khác biệt về cả số lượng lẫn hình dáng phân bố chiều cao giữa hai giới tính.
+Nhóm masculine chiếm số lượng áp đảo với ngọn núi dữ liệu cao và rộng, tập trung mạnh ở khoảng 170cm – 190cm. Nhóm này cũng sở hữu dải chiều cao trải dài nhất, bao trọn các cá thể siêu lùn và khổng lồ.
+Nhóm feminine có số lượng ít hơn nhiều, phân bố hẹp hơn và tập trung ở phân khúc chiều cao thấp hơn, phổ biến từ 160cm – 175cm.
+
+### 5. Có nên loại bỏ nhân vật có mass quá lớn không? Vì sao? 
+
+Không nên loại bỏ hoàn toàn trong mọi trường hợp, vì mass lớn có thể là đặc điểm thật của một số nhân vật đặc biệt. Tuy nhiên, khi phân tích xu hướng chung giữa height và mass, có thể tạo thêm phiên bản dữ liệu loại bỏ mass > 500 để biểu đồ dễ quan sát và kết quả ít bị lệch hơn.
+
+*Kết luận bằng 5 phát hiện nổi bật*.
+
+ - Dữ liệu Star Wars có nhiều giá trị thiếu ở các biến như height, mass, birth_year và species.
+ - Chiều cao nhân vật tập trung chủ yếu quanh nhóm chiều cao trung bình, nhưng vẫn có một số nhân vật rất thấp hoặc rất cao.
+ - Biến mass có outlier rõ rệt, đặc biệt là các nhân vật có cân nặng trên 500.
+ - Nhóm gender không phân bố đều, có một nhóm chiếm số lượng lớn hơn các nhóm còn lại.
+ - Khi phân tích đặc điểm nhân vật, cần xử lý missing values và outlier để biểu đồ dễ đọc hơn và kết luận chính xác hơn.
+ 

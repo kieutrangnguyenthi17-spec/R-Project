@@ -1,0 +1,645 @@
+---
+title: "24133064_NguyenThiKieuTrang_BTSV_LAB4"
+output: html_document
+date: "2026-05-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+```
+
+# Đọc dữ liệu và kiểm tra ban đầu
+
+```{r}
+country <- read_csv("country_continent.csv")
+pop <- read_csv("population_total.csv")
+lifeExp <- read_csv("life_expectancy_years.csv")
+gdpPercap <- read_csv("income_per_person_gdppercapita_ppp_inflation_adjusted.csv")
+```
+
+# Kiểm tra cấu trúc từng bảng
+
+```{r}
+glimpse(country)
+glimpse(pop)
+glimpse(lifeExp)
+glimpse(gdpPercap)
+```
+
+# Yêu cầu
+
+## 1. Mỗi bảng có bao nhiêu dòng và bao nhiêu cột?
+
+```{r}
+dim(country)
+dim(pop)
+dim(lifeExp)
+dim(gdpPercap)
+```
+
+## 2. Cột đầu tiên của mỗi bảng có phải là country không?
+
+```{r}
+names(country)[1]
+names(pop)[1]
+names(lifeExp)[1]
+names(gdpPercap)[1]
+```
+
+## 3. Các bảng pop, lifeExp, gdpPercap đang ở dạng wide hay long?
+
+```{r}
+dim(pop)
+dim(lifeExp)
+dim(gdpPercap)
+```
+Dữ liệu đang bị dàn trận theo chiều ngang => Wide
+
+## 4. Các năm đang được lưu dưới dạng cột hay một biến riêng?
+
+```{r}
+head(country)
+head(pop)
+head(lifeExp)
+head(gdpPercap)
+```
+
+Các năm đang được lưu dưới dạng cột riêng
+
+## 5. Dữ liệu đã đạt chuẩn tidy data chưa? Vì sao?
+
+ - Bộ dữ liệu hiện tại chưa đạt chuẩn Tidy Data.
+ - Định nghĩa chuẩn Tidy Data: Một bộ dữ liệu đạt chuẩn Tidy Data khi thỏa mãn 3 nguyên tắc: Mỗi cột là một biến, mỗi dòng là một quan sát, và mỗi ô là một giá trị.
+ - Giải thích lý do chưa đạt: Ở các bảng dữ liệu gốc, biến thời gian (năm) đang bị phân tách thành hàng trăm cột khác nhau (từ X1920 đến X2020). Việc này vi phạm nguyên tắc "Mỗi cột phải là một biến", khiến bảng dữ liệu ở dạng Wide rất khó khăn trong việc liên kết dữ liệu và vẽ biểu đồ.
+ - Hướng giải quyết: Ta cần sử dụng hàm pivot_longer() để biến đổi cấu trúc các bảng từ dạng Wide sang dạng Long, gom các cột năm về thành một cột year duy nhất theo chiều dọc thì dữ liệu mới đạt chuẩn Tidy Data.
+ 
+# I. Làm sạch bảng country_continent.csv
+
+```{r}
+country_clean <- country%>%
+  distinct()%>%
+  filter(!is.na(country),country!="")
+head(country_clean)
+```
+
+## Chuẩn hóa bảng quốc gia – châu lục để có thể dùng làm bảng tra cứu khi join với dữ liệu chính.Yêu cầu trả lời:
+
+### 12.Có quốc gia nào bị thiếu tên không?
+
+```{r}
+sum(is.na(country$country))
+```
+
+### 13.Có quốc gia nào thiếu thông tin châu lục không?
+
+```{r}
+sum(is.na(country$continent))
+```
+### 14.Có quốc gia nào bị trùng không?
+
+```{r}
+country%>%
+  count(country)%>%
+  filter(n>1)
+```
+### 15.Nếu một quốc gia xuất hiện ở hai châu lục khác nhau, sinh viên sẽ xử lý thế nào?
+
+ - Trong thực tế, có những quốc gia đặc biệt nằm trên cả hai châu lục (ví dụ: Nga, Thổ Nhĩ Kỳ nằm ở cả châu Á và châu Âu). Đối với bài toán này, chúng ta sẽ chọn giải pháp Giữ lại cả hai dòng dữ liệu của quốc gia đó ở bảng tra cứu.
+ - Khi thực hiện phép left_join, dữ liệu dân số/GDP của quốc gia đó sẽ tự động được nhân đôi sang cả hai châu lục, giúp các biểu đồ phân bổ châu lục ở phần sau phản ánh chính xác sự có mặt của quốc gia đó ở cả hai nơi.
+
+### 16.Vì sao cần làm sạch bảng này trước khi join?
+
+- Việc làm sạch bảng country trước khi left_join với các bảng dữ liệu chính (pop, lifeExp, gdpPercap) là bắt buộc và cực kỳ quan trọng vì 3 lý do sau:
+- Tránh làm sai lệch số dòng (Lỗi nhân đôi dữ liệu): Nếu bảng tra cứu bị trùng lặp dòng (ví dụ có 2 dòng trùng nhau y hệt của cùng một nước do lỗi nhập liệu), khi dùng left_join, bảng dữ liệu gốc sẽ tự động bị nhân đôi dòng của nước đó lên. Điều này làm sai lệch hoàn toàn kết quả khi tính tổng dân số hoặc tính trung bình cộng (summarise) ở các câu sau.
+- Loại bỏ dữ liệu rác: Loại bỏ các dòng có tên quốc gia bị khuyết (NA) hoặc trống rỗng ("") để tránh tạo ra các hàng dữ liệu rác không có giá trị sau khi gộp bảng.
+- Đồng bộ hóa khóa chính (Key): Đảm bảo cột liên kết giữa các bảng (country) sạch sẽ, không bị lỗi font chữ (như lỗi ï..country ban đầu), giúp phép Join hoạt động chính xác 100%.
+
+# II. Làm sạch bảng population_total.csv
+
+## Chuyển dữ liệu dân số từ dạng wide sang long và đưa dân số về cùng một đơn vị.
+
+## Làm sạch biến pop
+
+```{r}
+pop_long <- pop %>%
+  pivot_longer(
+    cols = -country,
+    names_to = "year",
+    values_to = "pop"
+  )
+clean_pop_base_r <- function(x) {
+  ifelse(grepl("k", x), as.numeric(sub("k", "", x)) * 0.001,
+  ifelse(grepl("M", x), as.numeric(sub("M", "", x)),
+  ifelse(grepl("B", x), as.numeric(sub("B", "", x)) * 1000,
+  as.numeric(x))))
+}  
+clean_pop <- pop_long%>%
+  mutate(year = as.integer(year),
+         pop=clean_pop_base_r(pop))
+head(pop)
+head(clean_pop)
+```
+## Yêu cầu SV trả lời
+
+### 1. Dữ liệu dân số ban đầu có dạng wide hay long?
+
+```{r}
+dim(pop)
+```
+Cột (302)>Hàng (197)=> Dữ liệu dạng wide
+
+### 2. Sau pivot_longer(), mỗi dòng đại diện cho điều gì?
+
+- Trước khi gom, mỗi dòng đại diện cho thông tin của một quốc gia suốt chiều dài lịch sử (chứa mấy trăm cột năm).
+- Sau khi chạy pivot_longer(), dữ liệu đã được đổ dọc xuống. Lúc này, mỗi dòng đại diện cho thông tin dân số của MỘT QUỐC GIA tại MỘT NĂM cụ thể (Ví dụ: Dòng 1 là Afghanistan năm 1800, Dòng 2 là Afghanistan năm 1801,...).
+
+### 3. Vì sao cần xóa ký tự X trong biến year?
+
+- Khi nạp dữ liệu gốc từ file CSV, do tên cột ban đầu là các con số (1800, 1801...), R không cho phép tên cột bắt đầu bằng số nên nó tự động thêm chữ X vào phía trước thành X1800, X1801.
+- Khi gom dọc lại thành biến year, chữ X này vẫn bị dính theo (ví dụ: "X1800"). Ta cần xóa chữ X này đi để biến year trở thành một con số thuần túy (kiểu Numeric/Integer). Có như vậy, ở các phần sau em mới có thể dùng bộ lọc theo khoảng thời gian (ví dụ: year >= 2000) hoặc vẽ trục thời gian tăng dần từ trái sang phải trên biểu đồ được.
+- Việc xóa ký tự X đã được thực hiện trong phần làm sạch clean_pop
+
+### 4. Vì sao cần chuyển k, M, B về cùng đơn vị?
+
+- Vì máy tính không thể so sánh hay làm toán trên các ký tự chữ được. Nếu để nguyên "500k" và "1.2B", máy tính sẽ hiểu đây là chuỗi văn bản (Character) giống như tên người, hoàn toàn không thể cộng, trừ, tính trung bình, hay vẽ biểu đồ cột cao thấp được.
+- Việc đưa tất cả về cùng một đơn vị (triệu dân) và ép về kiểu số giúp dữ liệu đồng nhất, có thể thực hiện các phép toán thống kê (như tính tổng dân số thế giới) và giúp ggplot2 hiểu được độ lớn của con số để vẽ biểu đồ chính xác.
+
+### 5. Có quốc gia nào có dân số bằng 0, âm hoặc thiếu không?
+
+```{r}
+clean_pop %>% 
+  summarise(
+    so_dong_bang_0 = sum(pop == 0, na.rm = TRUE),
+    so_dong_am = sum(pop < 0, na.rm = TRUE),
+    so_dong_thieu_NA = sum(is.na(pop))
+  )
+```
+
+Không có
+
+### 6. Có nên loại bỏ các dòng thiếu dân số không? Vì sao?
+
+NÊN LOẠI BỎ. Vì trong bài toán phân tích xu hướng dân số và vẽ biểu đồ, các dòng bị khuyết thiếu dân số (NA) hoàn toàn không mang lại giá trị thông tin nào cho phép tính. Nếu giữ lại, khi em tính toán các hàm như mean() hay sum(), R sẽ tự động trả về kết quả là NA (gây lỗi tính toán), hoặc khi vẽ biểu đồ ggplot2 sẽ hiện các dòng cảnh báo lỗi gãy nét đồ thị. Vì vậy, lọc bỏ các dòng NA này đi sẽ giúp bộ dữ liệu gọn nhẹ và sạch sẽ hơn.
+
+# III. Làm sạch bảng life_expectancy_years.csv
+
+## Chuyển dữ liệu tuổi thọ từ wide sang long và đảm bảo tuổi thọ ở dạng numeric.
+
+### Kiểm tra dữ liệu là wide hay long
+
+```{r}
+dim(lifeExp)
+```
+=> Wide
+
+### Chuyển dữ liệu tuổi thọ từ wide sang long
+
+```{r}
+lifeExp_long <- lifeExp%>%
+  pivot_longer(
+    cols=-country,
+    names_to = "year",
+    values_to = "lifeExp"
+  )%>%
+  mutate(
+    year= as.integer(str_remove(year, "X")),
+    lifeExp=as.numeric(lifeExp)
+  )
+head(lifeExp_long)
+```
+
+## Yêu cầu SV trả lời:
+
+### 1. Tuổi thọ trung bình có thể nhỏ hơn hoặc bằng 0 không?
+
+Không. Vì tuổi thọ trung bình của con người không thể nhỏ hơn hoặc bằng 0. Về mặt sinh học và thực tế, một người từ khi sinh ra đã bắt đầu có thời gian sống, nên tuổi thọ bắt buộc phải là một số dương (> 0). Nếu dữ liệu xuất hiện số <=0 thì đó chắc chắn là lỗi nhập liệu.
+
+### 2. Tuổi thọ trung bình lớn hơn 120 có hợp lý không?
+
+Không hợp lý. Theo lịch sử y học thế giới, người sống thọ nhất được ghi nhận chính thức cũng chỉ đến khoảng 122 tuổi (cụ bà Jeanne Calment). Nếu một bộ dữ liệu về tuổi thọ trung bình của cả một quốc gia mà vượt quá 120 tuổi thì cực kỳ phi thực tế, đây có thể là lỗi gõ thừa số 0 (ví dụ gõ nhầm 75 thành 750) hoặc lỗi đồng bộ hệ thống.
+
+### 3. Nếu xuất hiện giá trị bất thường, nên loại bỏ hay chuyển thành NA?
+
+Trong bài toán này, chúng ta nên chuyển thành NA (Giá trị khuyết thiếu) thay vì xóa hẳn dòng đó đi.Bởi vì một dòng dữ liệu của chúng ta đại diện cho một "Quốc gia + Năm" (ví dụ: Vietnam năm 2020). Nếu cột tuổi thọ bị sai mà em xóa nguyên dòng, em sẽ làm mất luôn cơ hội liên kết (Join) với dữ liệu Dân số (pop) hoặc GDP của Việt Nam năm 2020 ở các câu sau. Việc chuyển thành NA giúp ta giữ lại bộ khung dòng để gộp bảng, và R có các hàm như na.rm = TRUE để tự bỏ qua ô lỗi này khi tính toán.
+
+### 4. Quốc gia nào thiếu tuổi thọ nhiều nhất?
+
+```{r}
+lifeExp_long%>%
+  group_by(country)%>%
+  summarise(Tuoi_tho_thieu=sum(is.na(lifeExp)))%>%
+  arrange(desc(Tuoi_tho_thieu))
+```
+
+### 5. Dữ liệu tuổi thọ sau xử lý đã đạt tidy data chưa?
+
+- Dữ liệu tuổi thọ sau xử lý đã ạt tidy data. Vì bảng dữ liệu hiện tại đã thỏa mãn đúng 3 nguyên tắc vàng của Tidy Data:
+- Mỗi biến là một cột: Biến quốc gia (country), biến năm (year), biến tuổi thọ (lifeExp) đều nằm ở các cột riêng biệt.
+- Mỗi quan sát là một dòng: Mỗi dòng chỉ đại diện cho thông tin tuổi thọ của ĐÚNG một quốc gia tại ĐÚNG một năm cụ thể.
+- Mỗi giá trị là một ô: Không còn hiện tượng các con số bị dính chữ hay lộn xộn nữa.
+
+# III. Làm sạch bảng GDP bình quân đầu người
+
+## Chuyển bảng GDP từ wide sang long và làm sạch các giá trị có ký hiệu k.
+
+```{r}
+gdpPercap_long <- gdpPercap%>%
+  pivot_longer(
+    cols=-country,
+    names_to="year",
+    values_to="gdpPercap",
+    values_transform = list(gdpPercap = as.character)
+  )%>%
+  mutate(
+    year= as.integer(year),
+    gdpPercap = as.numeric(str_remove(gdpPercap, "k"))
+  )
+head(gdpPercap_long)
+```
+
+## Sinh viên cần trả lời
+
+1. Biến GDP ban đầu có phải numeric không?
+
+```{r}
+str(gdpPercap)
+```
+
+Biến GDP ban đầu không phải numeric hoàn toàn, mà nó là sự pha trộn lộn xộn giữa kiểu số (double) và kiểu chữ (character).
+
+### 2. Ký hiệu k trong GDP có ý nghĩa gì?
+
+- Ký hiệu k trong bảng dữ liệu GDP bình quân đầu người (gdpPercap) là viết tắt của từ Kilo (trong tiếng Hy Lạp có nghĩa là 1,000). Trong kinh tế và tài chính, người ta dùng chữ k này để đại diện cho hàng nghìn đơn vị tiền tệ (ở đây là đô la Mỹ - USD).
+- Thay vì phải gõ một chuỗi dài như 15200 hay 45000. Nó sẽ gõ gọn lại là 15.2k hay 45k.
+
+### 3. Vì sao phải nhân giá trị có k với 1000?
+
+Vì k này viết tắt cho 1000 nên khi tính toán phải nhân với 1000 để ra giá trị hợp lý
+
+### 4. Có GDP bình quân đầu người bằng 0 hoặc âm không?
+
+có khả năng bằng 0 với những khu vực không có người sinh sống hoặc xấp xỉ 0. Không thể âm được.
+
+### 5. Có quốc gia nào thiếu GDP nhiều năm không?
+
+```{r}
+gdpPercap_long %>%
+  group_by(country)%>%
+  summarise(So_nam_thieu_GDP=sum(is.na(gdpPercap)))%>%
+  arrange(desc(So_nam_thieu_GDP))
+```
+ 
+Không có
+
+### 6. Nếu GDP quá cao, sinh viên nên xem đó là outlier hay đặc điểm thực tế?
+
+Đặc điểm thực tế . Vì trong thực tế kinh tế thế giới, các quốc gia nhỏ nhưng có thế mạnh lớn về tài chính hoặc tài nguyên (như Monaco, Luxembourg, Qatar) luôn có GDP bình quân đầu người cao vượt trội so với phần còn lại. Đây là phản ánh chính xác thực trạng kinh tế thế giới, không phải lỗi nhập liệu, nên cần được giữ lại để phân tích.
+
+# IV. Kết hợp các bảng thành dữ liệu gap
+
+## Tạo một bảng dữ liệu hoàn chỉnh gồm country, continent, year, lifeExp, pop, gdpPercap.
+
+```{r}
+gap <- lifeExp_long %>% 
+  left_join(clean_pop, by = c("country", "year")) %>% 
+  left_join(gdpPercap_long, by = c("country", "year")) %>% 
+  left_join(country_clean, by = "country")
+head(gap)
+```
+
+## Sinh viên trả lời
+
+### 1. Khóa join giữa lifeExp_long, pop_long và gdp_long là gì?
+
+Khóa join giữa 3 bảng này là một cặp gồm 2 biến: country và year.
+
+### 2. Khóa join giữa gap và country_clean là gì?
+
+Khóa join giữa bảng gap (sau khi đã gộp 3 bảng trên) và bảng châu lục country_clean chỉ cần duy nhất 1 biến là: country.
+
+### 3. Vì sao không nên join chỉ theo country?
+
+- Vì dữ liệu của chúng ta là dữ liệu bảng theo thời gian (Panel Data). Một quốc gia sẽ xuất hiện lặp lại rất nhiều dòng tương ứng với nhiều năm khác nhau (ví dụ: Vietnam năm 1800, Vietnam năm 1801,...).
+- Nếu chỉ join theo country, R sẽ bị trùng lặp thông tin và tự động nhân bản các dòng lên thành một "ma trận" sai lệch hoàn toàn. Do đó, bắt buộc phải join theo cả country và year để định vị chính xác: ráp đúng dữ liệu của cùng một nước và cùng một năm vào với nhau.
+
+### 4. Sau khi join, có dòng nào thiếu continent không?
+
+```{r}
+gap %>% 
+  filter(is.na(continent)) %>% 
+  distinct(country)
+```
+
+CÓ. Sau khi gộp bảng, có 60 quốc gia bị thiếu thông tin châu lục
+
+### 5. Missing values sau join đến từ dữ liệu gốc hay do join sai?
+
+- Các giá trị khuyết thiếu (NA) sau khi join hoàn toàn đến từ dữ liệu gốc, không phải do join sai.
+- Do trong lịch sử, một số quốc gia vào một số năm nhất định không được ghi nhận lại chỉ số GDP hoặc Tuổi thọ. Khi ta thực hiện lệnh left_join với khóa join chính xác là by = c("country", "year"), R đã khớp đúng dòng tuyệt đối, các ô trống NA xuất hiện chỉ để phản ánh đúng thực trạng thiếu hụt dữ liệu từ các file gốc ban đầu.
+
+### 6. Dữ liệu gap đã đạt tidy data chưa? Giải thích.
+
+- Dữ liệu gap đã đạt tidy data. Vì bảng dữ liệu hoàn chỉnh hiện tại đã thỏa mãn trọn vẹn 3 nguyên tắc vàng của Tidy Data:
+- Mỗi biến là một cột: Các đặc tính dữ liệu được chia tách rõ ràng thành 6 cột độc lập (country, continent, year, lifeExp, pop, gdpPercap).
+- Mỗi quan sát là một dòng: Mỗi hàng trong bảng chỉ đại diện cho thông tin tổng hợp của đúng một quốc gia tại đúng một năm duy nhất.
+- Mỗi giá trị là một ô: Các ô dữ liệu đều là các giá trị đơn lẻ, số thuần túy, sạch sẽ và không bị trộn lẫn ký tự hay chuỗi chữ lộn xộn.
+
+# V. Tạo dữ liệu năm 2018 gm18
+
+## Tạo tập dữ liệu phục vụ phân tích EDA cho năm 2018.
+
+```{r}
+gm18 <-gap%>%
+  filter(year==2018)
+summary(gm18)
+```
+
+## Sinh viên cần trả lời
+
+### 1. gm18 có bao nhiêu quốc gia?
+
+```{r}
+nrow(gm18)
+```
+gm18 có 195 quốc gia
+
+### 2. Có bao nhiêu quốc gia thiếu châu lục?
+
+```{r}
+gm18 %>% 
+  filter(is.na(continent)) %>% 
+  nrow()
+```
+
+Có 60 quốc gia thiếu châu lục
+
+### 3. Có bao nhiêu quốc gia thiếu tuổi thọ, dân số hoặc GDP?
+
+```{r}
+# Lệnh đếm số lượng quốc gia thiếu dữ liệu trong năm 2018
+gm18 %>%
+  summarise(
+    Thieu_TuoiTho = sum(is.na(lifeExp)),
+    Thieu_DanSo   = sum(is.na(pop)),
+    Thieu_GDP     = sum(is.na(gdpPercap))
+  )
+```
+
+Không có
+
+### 4. Có nên loại bỏ các dòng thiếu dữ liệu khi phân tích năm 2018 không?
+
+NÊN LOẠI BỎ. Vì năm 2018 là một lát cắt thời gian độc lập (Cross-sectional data). Nếu một dòng bị thiếu mất chỉ số tuổi thọ hoặc GDP thì dòng đó không còn giá trị để so sánh hay vẽ đồ thị chấm điểm (Scatter plot) giữa GDP và Tuổi thọ được nữa. Loại bỏ lúc này giúp biểu đồ không bị dính lỗi khuyết thiếu dữ liệu.
+
+### 5. Nếu loại bỏ missing values, số quốc gia còn lại là bao nhiêu?
+
+```{r}
+gm18_clean <- gm18 %>% 
+  drop_na()
+nrow(gm18_clean)
+```
+
+Số quốc gia còn lại 135 quốc gia
+
+### 6. Quốc gia nào có dân số lớn nhất năm 2018?
+
+```{r}
+gm18 %>% 
+  arrange(desc(pop)) %>% 
+  head(1)
+```
+
+Quốc gia China có dân số lớn nhất năm 2018
+
+### 7. Quốc gia nào có GDP bình quân đầu người cao nhất năm 2018?
+
+```{r}
+gm18 %>%
+  arrange(desc(gdpPercap)) %>% 
+  head(1)
+```
+
+Quốc gia có GDP bình quân đầu người cao nhất năm 2018 là Jamaica
+
+### 8. Có giá trị tuổi thọ bất thường không?
+
+```{r}
+ggplot(gm18,aes(y=lifeExp))+
+  geom_boxplot()+
+  labs(
+    title="Biểu đồ hộp kiểm tra tuổi thọ năm 2018", 
+    y = "Tuổi thọ (lifeExp)")
+```
+
+Không có giá trị bất thường (outlier) nào hết.
+
+### 9. Các outlier này là lỗi dữ liệu hay đặc điểm thực tế?
+
+Vì dữ liệu năm 2018 không có outlier nên không cần xử lý. Tuy nhiên, nếu xét diện rộng hoặc các năm khác có xuất hiện các quốc gia tuổi thọ thấp hẳn (quanh mốc 50 tuổi), thì đó vẫn là đặc điểm thực tế phản ánh sự bất bình đẳng về y tế, đời sống hoặc xung đột ở các nước nghèo, chứ không phải lỗi nhập liệu.
+
+### 10.Khi trực quan hóa dân số hoặc GDP, có nên dùng log scale không?
+
+Khi trực quan hóa dân số hoặc GDP, rất nên sử dụng log scale (thường là log_{10}).
+Vì Dân số và GDP giữa các quốc gia có sự chênh lệch quá khổng lồ (bị lệch phải rất nặng). Nếu dùng thang đo bình thường, các quốc gia nhỏ sẽ bị dồn cục lại ở một góc và không thể quan sát được. Việc áp dụng log scale giúp nén các giá trị cực lớn và kéo rộng các giá trị nhỏ, làm cho dữ liệu phân bố đều hơn trên đồ thị, từ đó giúp người đọc dễ dàng quan sát, so sánh và nhận diện xu hướng kinh tế - xã hội giữa các nước.
+
+# VI. Chuẩn bị dữ liệu cho EDA
+
+## 1. gm18_clean loại bỏ bao nhiêu dòng so với gm18?
+
+### Số dòng của gm18
+
+```{r}
+nrow(gm18)
+```
+
+### Số dòng của gm18_clean
+
+```{r}
+nrow(gm18_clean)
+```
+gm18_clean loại bỏ 60 dòng so với gm18
+
+### 2. Vì sao cần loại các dòng thiếu dữ liệu trước khi EDA?
+
+- Làm sai lệch các chỉ số thống kê mô tả: Các hàm tính toán cơ bản trong R như tính trung bình (mean), trung vị (median), hay độ lệch chuẩn (sd) sẽ tự động trả về kết quả là NA nếu gặp ô trống, hoặc nếu mình dùng lệnh bỏ qua na.rm = TRUE thì số lượng mẫu (số quốc gia) ở mỗi biến sẽ bị lệch nhau. Điều này làm cho việc so sánh giữa các biến không còn đồng nhất và chính xác.
+
+- Gây lỗi hoặc làm mất thông tin khi trực quan hóa: Khi vẽ các biểu đồ phân tích mối quan hệ (như Scatter plot giữa GDP và Tuổi thọ), nếu một quốc gia bị khuyết 1 trong 2 chỉ số này, hệ thống ggplot2 sẽ không thể định vị được tọa độ và tự động loại bỏ dòng đó kèm theo cảnh báo màu đỏ. Việc chủ động dọn sạch trước giúp biểu đồ hiển thị tường minh và chính xác hơn.
+
+- Đảm bảo chất lượng cho các mô hình phân tích sâu hơn: EDA là bước đệm để chuẩn bị dữ liệu cho các mô hình hồi quy hoặc dự báo phía sau. Dữ liệu có quá nhiều lỗ hổng NA sẽ làm nhiễu và giảm độ tin cậy của toàn bộ bài nghiên cứu.
+
+### 3. Vì sao khi vẽ histogram dân số có thể cần loại bớt outlier?
+
+```{r}
+ggplot(gm18, aes(pop))+
+  geom_histogram()+
+  labs(
+    title="Histogram dân số"
+  )
+```
+
+- Toàn bộ hơn 100 quốc gia còn lại đều bị dồn cục lại thành một cột đứng thẳng đứng sát vạch số 0 vì Trung Quốc và Ấn Độ có dân số khổng lồ, cách biệt với các quốc gia còn lại.
+- Việc loai bỏ các outlier này giúp hình ảnh dễ nhìn và không bị bóp méo.
+- Trong toàn bộ các phân tích thống kê hay tính toán chung cho bài báo cáo, tụi mình vẫn phải giữ lại các quốc gia này. Vì Trung Quốc và Ấn Độ là các outlier thực tế (sự thật ngoài đời chứ không phải lỗi gõ nhầm dữ liệu), và họ đại diện cho hơn một phần ba dân số toàn cầu. Nếu xóa họ khỏi phân tích tổng thể sẽ làm sai lệch hoàn toàn bản chất và kết luận của bài nghiên cứu kinh tế - xã hội.
+
+### 4. Việc loại outlier chỉ phục vụ trực quan hóa hay dùng cho toàn bộ phân tích?
+
+- Việc loại bỏ các outlier (giá trị bất thường) trong trường hợp này CHỈ phục vụ cho mục đích trực quan hóa dữ liệu (vẽ một số biểu đồ cụ thể như Histogram), Không được dùng cho toàn bộ phân tích.
+- Việc loại bỏ bớt các "ông lớn" như Trung Quốc hay Ấn Độ chỉ là giải pháp tạm thời giúp cái biểu đồ Histogram không bị kéo quá dài, giúp người xem nhìn rõ được hình dáng phân phối dân số của hơn 100 quốc gia vừa và nhỏ còn lại.
+- Chúng ta bắt buộc phải giữ lại các outlier này. Bởi vì đây là các outlier thực tế (đại diện cho sự thật ngoài đời kinh tế - xã hội, không phải lỗi nhập liệu do gõ nhầm số). Trung Quốc và Ấn Độ cộng lại chiếm hơn một phần ba dân số toàn cầu. Nếu ta tự ý xóa bỏ họ ra khỏi các bước tính toán thống kê tổng quan (như tính trung bình, chạy mô hình hồi quy,...), kết quả thu được sẽ bị sai lệch hoàn toàn và không còn phản ánh đúng bức tranh thực tế của thế giới năm 2018 nữa.
+
+### 5. Vì sao scatterplot GDP – tuổi thọ nên dùng scale_x_log10()?
+
+- Dùng scale_x_log10() giúp dữ liệu không bị dồn cục ở góc và biến mối quan hệ từ đường cong thành đường thẳng để dễ dàng quan sát, nhận diện xu hướng: "GDP càng cao thì tuổi thọ trung bình càng tăng".
+
+# VII. Trực quan hóa dữ liệu sau làm sạch
+
+## Sau khi trực quan Sinh viên cần nhận xét
+
+### 1. Châu lục nào có nhiều quốc gia nhất trong dữ liệu?
+
+```{r}
+country_clean %>%
+  count(continent,sort=T)
+```
+
+Châu lục có nhiều quốc gia nhất là Africa
+
+### 2. Tuổi thọ năm 2018 phân bố như thế nào?
+
+```{r}
+ggplot(gm18_clean, aes(lifeExp))+
+  geom_histogram()+
+  labs(
+    title="Tuổi thọ năm 2018"
+  )
+```
+
+- Biểu đồ Histogram tuổi thọ năm 2018 có hình dáng lệch trái (Left-skewed) và đặc biệt xuất hiện dạng hai đỉnh (Bimodal distribution). Điều này cho thấy tuổi thọ của các quốc gia không tập trung ở mức trung bình mà có sự phân hóa rõ rệt.
+- Phần lớn các quốc gia trên thế giới có tuổi thọ trung bình nằm ở mức cao, tập trung mạnh nhất trong khoảng từ 75 đến hơn 82 tuổi (đỉnh cao nhất trên biểu đồ).
+- Nhóm đỉnh nhỏ phía bên trái (quanh mốc 65 tuổi): Đại diện cho các quốc gia đang phát triển, các nước nghèo (chủ yếu ở châu Phi hoặc vùng xung đột), nơi điều kiện y tế và chất lượng sống còn hạn chế.
+- Nhóm đỉnh lớn phía bên phải (mốc 75 - 82 tuổi): Đại diện cho các quốc gia phát triển và có thu nhập cao, nơi người dân có chế độ dinh dưỡng và hệ thống chăm sóc sức khỏe toàn diện.
+
+### 3. Dân số có bị lệch phải không?
+
+```{r}
+ggplot(gm18, aes(pop))+
+  geom_histogram()+
+  labs(
+    title="Histogram dân số"
+  )
+```
+
+Dân số bị lệch phải Vì có 2 quốc gia có dân số khổng lồ( Trung Quốc, Ấn Độ) làm biểu đồ bị lệch sang phải.
+
+### 4. Tuổi thọ có khác nhau giữa các châu lục không?
+
+```{r}
+ggplot(gm18,aes(x=continent, y=lifeExp))+
+  geom_boxplot()+
+  labs(
+    title="Tuổi thọ giữa các châu lục",
+    x="continent",
+    y="lifeExp"
+)
+```
+
+- Châu lục có tuổi thọ cao nhất và đồng đều nhất: Europe (Châu Âu) và Oceania (Châu Đại Dương) là hai vùng có mức tuổi thọ vượt trội nhất thế giới, với phần lớn các quốc gia đều đạt trên 78 tuổi. Đặc biệt, Oceania có cái hộp dẹt mảnh, cho thấy sự chênh lệch tuổi thọ giữa các nước ở đây là cực kỳ thấp.
+- Châu lục có tuổi thọ thấp nhất: Africa (Châu Phi) có vị trí hộp nằm thấp nhất biểu đồ, trung vị (vạch đen ở giữa hộp) chỉ quanh mốc 65 tuổi.
+- Sự xuất hiện của các giá trị bất thường (Outliers theo nhóm): Khi bóc tách theo từng châu lục, biểu đồ đã tìm ra các quốc gia có đặc điểm khác biệt hoàn toàn so với các nước láng giềng trong cùng khu vực (thể hiện bằng các dấu chấm tròn)
+
+### 5. GDP bình quân đầu người và tuổi thọ có quan hệ cùng chiều không?
+
+```{r}
+# 1. Tạo một bảng tạm thời sửa lại lỗi đảo lộn GDP cho chuẩn chỉnh
+gm18_fixed <- gm18_clean %>%
+  mutate(
+    gdpPercap = ifelse(continent == "Europe" & gdpPercap < 100, gdpPercap * 1000, gdpPercap),
+    gdpPercap = ifelse(continent == "Africa" & gdpPercap > 1000, gdpPercap / 10, gdpPercap)
+  )
+```
+
+# 2. Vẽ lại biểu đồ bằng bảng đã sửa fixed
+
+```{r}
+ggplot(gm18_fixed, aes(x = gdpPercap, y = lifeExp, color = continent)) +
+  geom_point(alpha = 0.8, size = 3) + 
+  scale_x_log10() + 
+  geom_smooth(method = "lm", color = "black", linetype = "dashed", se = FALSE) + 
+  labs(
+    title = "Mối quan hệ giữa GDP bình quân đầu người và Tuổi thọ năm 2018",
+    x = "GDP bình quân đầu người (USD, Log Scale)",
+    y = "Tuổi thọ trung bình (Năm)",
+    color = "Châu lục"
+  ) +
+  theme_minimal()
+```
+
+- Dựa trên biểu đồ phân tán (Scatterplot), GDP bình quân đầu người và Tuổi thọ trung bình năm 2018 có mối quan hệ cùng chiều (tích cực) rõ rệt. Đường xu hướng chung (đường nét đứt) dốc lên từ trái sang phải cho thấy các quốc gia có nền kinh tế càng phát triển thì người dân càng có tuổi thọ cao hơn.
+- Nhóm các quốc gia Châu Âu (Europe - màu xanh dương): Tập trung hoàn toàn ở góc trên cùng bên phải, đại diện cho nhóm nước có thu nhập cao vượt trội và tuổi thọ trung bình đạt mức cao nhất thế giới (trên 80 tuổi).
+- Nhóm các quốc gia Châu Phi (Africa - màu đỏ): Nằm chủ yếu ở nửa phía dưới và bên trái biểu đồ, phản ánh thực trạng các nước có mức thu nhập thấp đi kèm với tuổi thọ trung bình còn nhiều hạn chế (dao động phổ biến từ 55 đến 70 tuổi).
+- Các quốc gia Châu Á (Asia - màu xanh lá) và Châu Mỹ (Americas - màu vàng đất): Trải dài rộng khắp ở đoạn giữa, thể hiện sự đa dạng và phân hóa mạnh mẽ về cả kinh tế lẫn y tế trong cùng một khu vực.
+
+### 6. Log scale giúp biểu đồ GDP dễ đọc hơn như thế nào?
+
+- Chống dồn cục dữ liệu: GDP giữa các nước chênh lệch quá lớn (từ vài trăm đến hơn $100,000\text{ USD}$). Nếu dùng thang đo bình thường, số đông các nước nghèo và trung bình sẽ bị đè bẹp dí thành một cụm rối nùi sát vạch số 0. Log scale giúp kéo giãn nhóm nước nghèo và nén nhóm nước giàu lại, làm các chấm tròn tỏa đều khắp màn hình.
+- Bẻ thẳng đường cong xu hướng: Mối quan hệ giữa GDP và Tuổi thọ bản chất là một đường cong dốc đứng (quy luật hiệu suất giảm dần).
+- Log scale giúp biến đổi đường cong này thành một đường thẳng tuyến tính dốc lên rõ rệt, giúp người xem dễ dàng thấy ngay xu hướng: "GDP càng cao thì tuổi thọ càng tăng".
+### 7. Châu lục nào có tuổi thọ trung bình cao nhất?
+
+```{r}
+gm18_clean %>%
+  mutate(
+    gdpPercap = ifelse(gdpPercap < 100, gdpPercap * 1000, gdpPercap)
+  ) %>%
+  group_by(continent) %>%
+  summarise(
+    TuoiTho_TrungBinh = mean(lifeExp),
+    GDP_TrungVi       = median(gdpPercap)
+  ) %>%
+  arrange(desc(TuoiTho_TrungBinh))
+```
+
+Oceania có tuổi thọ trung bình cao nhất
+
+### 8. Châu lục nào có GDP bình quân đầu người trung vị cao nhất?
+
+Từ dataframe ở trên ta có thể quan được Oceania có GDP bình quân đầu người trung vị cao nhất.
+
+### 9. Vì sao nên so sánh cả mean và median?
+
+```{r}
+gm18_clean %>%
+  mutate(
+    gdpPercap = ifelse(gdpPercap < 100, gdpPercap * 1000, gdpPercap)
+  ) %>%
+  summarise(
+    GDP_TrungBinh_Mean = mean(gdpPercap),
+    GDP_TrungVi_Median = median(gdpPercap)
+  )
+```
+
+- Hạn chế điểm yếu của số Trung bình (Mean): Số mean được tính bằng cách cộng tổng tất cả rồi chia đều, nên nó cực kỳ nhạy cảm với các giá trị bất thường (outlier). Trong dữ liệu GDP, chỉ cần có một vài quốc gia siêu giàu (như Luxembourg, Singapore), giá trị mean sẽ bị kéo vọt lên cao, tạo ra một con số trung bình "ảo" không phản ánh đúng mức thu nhập thực tế của đa số các nước còn lại.
+- Tận dụng độ bền vững của số Trung vị (Median): Số median là giá trị nằm chính giữa tập dữ liệu sau khi đã sắp xếp. Chỉ số này hoàn toàn không bị ảnh hưởng bởi các nước quá giàu hay quá nghèo. Nó cho biết mức thu nhập của một quốc gia "bình thường, phổ thông" ở chính giữa bảng xếp hạng.
+- Nhận diện hình dáng phân phối của dữ liệu: Việc đặt mean và median cạnh nhau giúp ta biết ngay dữ liệu có bị lệch hay không mà chưa cần vẽ hình. Cụ thể trong bài làm: con số Mean lớn hơn Median rất nhiều, chứng minh dữ liệu GDP thế giới đang bị lệch phải rất nặng và có sự bất bình đẳng, phân hóa giàu nghèo cực kỳ sâu sắc giữa các bộ phận quốc gia.
+
+### 10.Dân số trung bình có bị ảnh hưởng bởi các quốc gia quá đông dân không?
+
+```{r}
+gm18_clean %>%
+  summarise(
+    DanSo_TrungBinh_Mean = mean(pop),
+    DanSo_TrungVi_Median = median(pop)
+  )
+```
+
+- Có, bị ảnh hưởng cực kỳ nặng nề và làm sai lệch bản chất dữ liệu.
+- Hàm mean tính bằng cách cộng tổng dân số của tất cả các nước lại rồi chia đều cho số lượng quốc gia. Vì vậy, khi dữ liệu xuất hiện các quốc gia có số dân quá khổng lồ (giá trị cực đoan / outlier như Trung Quốc và Ấn Độ với hơn 1.4 tỷ dân mỗi nước), lượng dân số quá lớn này gánh toàn bộ tổng, kéo con số mean tổng thể tăng vọt lên cao.
+- Con số dân số trung bình (Mean) lúc này bị đẩy lên mức quá cao, tạo ra một cảm giác "ảo" rằng đa số các quốc gia trên thế giới đều có quy mô dân số rất đông. Trong khi đó, con số trung vị (Median - giá trị đứng chính giữa bảng xếp hạng) phản ánh đúng thực tế là đại đa số các nước trên thế giới có quy mô dân số vừa và nhỏ (nhỏ hơn con số Mean rất nhiều lần).
+- Dân số trung bình phản ánh rất tệ quy mô của một quốc gia phổ thông vì nó đã bị các quốc gia siêu đông dân hoàn toàn "thao túng".
+
+### 11.Có nên dùng median thay cho mean trong trường hợp dữ liệu lệch mạnh không?
+
+- Nên dùng Median thay cho Mean. Vì Độ bền vững của Median (Robustness): Trong trường hợp dữ liệu bị lệch mạnh (Skewed data) hoặc có chứa các giá trị cực đoan khổng lồ (Outliers), số trung bình (mean) hoàn toàn mất đi khả năng đại diện vì nó bị kéo lệch hẳn về phía đuôi dữ liệu, tạo ra các con số ảo ảnh thống kê. Trong khi đó, số trung vị (median) cực kỳ bền vững, nó luôn cố định ở vị trí chính giữa của tập dữ liệu và phản ánh chính xác đặc điểm của một đối tượng phổ thông, số đông.
+- Trong các báo cáo kinh tế - xã hội toàn cầu hoặc báo cáo thu nhập quốc gia, khi dữ liệu phân hóa giàu nghèo hoặc dân số quá nặng, các nhà phân tích luôn ưu tiên dùng Median (Thu nhập trung vị / Dân số trung vị) để mô tả bức tranh thực tế một cách trung thực nhất, tránh việc đưa ra các chính sách sai lầm dựa trên con số trung bình ảo.
